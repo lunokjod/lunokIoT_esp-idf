@@ -1,11 +1,11 @@
 #ifndef ___LUNOKIOT__TASK___
 #define ___LUNOKIOT__TASK___
-#define LUNOKIOT_ESP32
+//#define LUNOKIOT_ESP32
 
 #include "LunokIoT.hpp"
 using namespace LunokIoT;
 
-//#ifdef LUNOKIOT_ESP32
+//#ifdef CONFIG_LUNOKIOT_ESP32
 #include "ESP32/Task.hpp"
 //#endif //LUNOKIOT_ESP32
 
