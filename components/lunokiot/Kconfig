@@ -9,14 +9,14 @@ menu "lunokIoT"
             help
                 select Select device to support 
             depends on LUNOKIOT_ESP32
-            config LUNOKIOT_DEVICE_UNKNOWN
-                bool "unknown device"
+            config LUNOKIOT_DEVICE_ESP32
+                bool "ESP-32 based board"
                 default y
                 help
                     gotcha! you forgot do menuconfig! x'D
-            config LUNOKIOT_M5STACK_ATOM_LITE
-                bool "M5Atom Lite support"
+            config LUNOKIOT_DEVICE_M5STACK_ATOM_LITE
+                bool "M5Atom Lite"
                 help
-                    Enable support for M5Atom lite devices
+                    Enable support for M5Atom lite device
         endchoice
 endmenu
