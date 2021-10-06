@@ -1,0 +1,10 @@
+config LUNOKIOT_ESP32
+    bool "ESP-32 support"
+    help
+        Enable the ESP-32 support
+config LUNOKIOT_M5STACK_ATOM_LITE
+    bool "M5Atom Lite support"
+    depends on LUNOKIOT_ESP32
+    help
+        Enable support for M5Atom lite devices
+        

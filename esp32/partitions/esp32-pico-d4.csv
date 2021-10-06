@@ -1,0 +1,6 @@
+#  Name,   Type,  SubType,    Offset,    Size,   Flags
+factory,    app,  factory,   0x10000,      2M,
+nvs,       data,      nvs,  0x210000,     64K,
+spiffs,    data,   spiffs,          ,      1M,
+# 0x400000 (4MB Flash)
+# https://github.com/espressif/arduino-esp32/tree/master/tools/partitions
