@@ -5,9 +5,9 @@
 #include "LunokIoT.hpp"
 using namespace LunokIoT;
 
-//#ifdef CONFIG_LUNOKIOT_ESP32
+//#ifdef LUNOKIOT_DEVICE_ESP32
 #include "ESP32/Task.hpp"
-//#endif //LUNOKIOT_ESP32
+//#endif //LUNOKIOT_DEVICE_ESP32
 
 //@TODO here must include other architecture Task.hpp definition
 
