@@ -1,10 +1,10 @@
 #include <LunokIoT.hpp>
 #include "ESP32/Device.hpp"
-#include "ESP32/Device/ESP32.hpp"
-#include "ESP32/Driver/NVS.hpp"
-#include "ESP32/Driver/Console.hpp"
-#include "ESP32/Driver/I2C.hpp"
-#include "ESP32/Service/NTPService.hpp"
+#include "ESP32/Devices/ESP32.hpp"
+#include "ESP32/Drivers/NVS.hpp"
+#include "ESP32/Drivers/Console.hpp"
+#include "ESP32/Drivers/I2C.hpp"
+#include "ESP32/Services/NTPService.hpp"
 
 #include <freertos/task.h>
 #include <esp_spi_flash.h>
@@ -13,6 +13,7 @@
 #include <driver/uart.h>
 #include <driver/rtc_io.h>
 #include <ctype.h>
+#include <cstdio>
 #include <unistd.h>
 #include <esp_sleep.h>
 
@@ -345,15 +346,13 @@ void ESP32Device::RegisterConsoleCommands(void) {
 ESP32Device::ESP32Device(): Device((const char*)"(-) ESP32") {
     printf("%p %s Setup\n", this, this->name);
     this->_period = 2000;
-
     this->console = new ConsoleDriver();
     this->RegisterConsoleCommands();
     this->nvs = new NVSDriver();
     this->i2c = new I2CDriver();
     this->wifi = new WiFiDriver();
     this->ntp = new NTPService();
-
-    printf("ESP32Device Device Seup ends here\n");
+    printf("%p %s End Setup\n", this, this->name);
 }
 #define LUNOKIOT_LOG_MARK_TIME_MS 60000
 

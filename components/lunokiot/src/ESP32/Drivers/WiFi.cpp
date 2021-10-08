@@ -3,7 +3,7 @@
 
 #include "LunokIoT.hpp"
 #include "ESP32/Driver.hpp"
-#include "ESP32/Driver/WiFi.hpp"
+#include "ESP32/Drivers/WiFi.hpp"
 #include <esp_log.h>
 
 #include <stdio.h>

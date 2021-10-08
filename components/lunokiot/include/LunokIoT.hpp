@@ -1,10 +1,9 @@
 #ifndef ___LUNOKIOT__MAIN___
 #define ___LUNOKIOT__MAIN___
-
 namespace LunokIoT {
-    // here comes everyting related with LunokIoT (@TODO)
-    void Begin();
+
 }
+
 #include "base/ANSI.hpp"
 
 #include "Debug.hpp"
@@ -12,5 +11,10 @@ namespace LunokIoT {
 #include "Device.hpp"
 #include "Driver.hpp"
 #include "Service.hpp"
+
+namespace LunokIoT {
+    // here comes everyting related with LunokIoT (@TODO)
+    Device * Begin();
+}
 
 #endif // ___LUNOKIOT__MAIN___

@@ -1,3 +1,4 @@
+# https://www.kernel.org/doc/html/latest/kbuild/kconfig-language.html#introduction
 menu "lunokIoT"
     choice LUNOKIOT_DEVICE
         prompt "Device support"
@@ -9,8 +10,8 @@ menu "lunokIoT"
             help
                 Generic unspecified ESP32
         config LUNOKIOT_DEVICE_M5STACK_ATOM_LITE
-            bool "M5Atom Lite"
+            bool "M5Stack Atom Lite"
             help
-                Enable support for M5Atom lite device
+                Enable support for M5Stack Atom lite device
     endchoice
 endmenu

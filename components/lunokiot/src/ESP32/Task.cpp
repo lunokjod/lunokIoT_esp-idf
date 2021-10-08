@@ -31,7 +31,6 @@ Task::Task(const char * name, unsigned long period) : TaskTemplate(period) {
         return;
     }
     */
-   
     //printf("%p %s Task callback every: %lums \n", this, this->name, this->_period);
     xTaskCreate(
         &Task::Callback,    // Function that should be called

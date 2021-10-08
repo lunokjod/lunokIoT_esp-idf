@@ -1,6 +1,6 @@
 #include "LunokIoT.hpp"
 #include "ESP32/Driver.hpp"
-#include "ESP32/Driver/Console.hpp"
+#include "ESP32/Drivers/Console.hpp"
 
 #include <esp_console.h>
 #include <linenoise/linenoise.h>
@@ -50,7 +50,7 @@ ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned lon
         .func = &ConsoleDriver::Clear,
         .argtable = nullptr
     };
-    ESP_ERROR_CHECK( esp_console_cmd_register(&cmdClear) );
+    esp_console_cmd_register(&cmdClear);
 
     fflush(stdout);
     fsync(fileno(stdout));
@@ -58,9 +58,9 @@ ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned lon
     setvbuf(stdin, NULL, _IONBF, 0);
     vTaskDelay(50 / portTICK_PERIOD_MS);
 
-    ESP_ERROR_CHECK(esp_console_new_repl_uart(&uart_config, &repl_config, &repl));
+    esp_console_new_repl_uart(&uart_config, &repl_config, &repl);
 
-    ESP_ERROR_CHECK(esp_console_start_repl(repl));
+    esp_console_start_repl(repl);
 
     /* Set command history size */
     linenoiseHistorySetMaxLen(20);
@@ -70,6 +70,6 @@ ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned lon
 }
 
 bool ConsoleDriver::Loop() {
-    printf("%p %s Loop\n", this, this->name);
+    //printf("%p %s Loop\n", this, this->name);
     return true;
 }

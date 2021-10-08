@@ -1,6 +1,6 @@
 #include "LunokIoT.hpp"
 #include "ESP32/Driver.hpp"
-#include "ESP32/Driver/I2C.hpp"
+#include "ESP32/Drivers/I2C.hpp"
 #include <esp_log.h>
 #include <stdio.h>
 #include "argtable3/argtable3.h"

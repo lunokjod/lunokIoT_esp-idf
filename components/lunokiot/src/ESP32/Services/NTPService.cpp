@@ -1,6 +1,6 @@
 #include "LunokIoT.hpp"
 #include "ESP32/Service.hpp"
-#include "ESP32/Service/NTPService.hpp"
+#include "ESP32/Services/NTPService.hpp"
 
 using namespace LunokIoT;
 

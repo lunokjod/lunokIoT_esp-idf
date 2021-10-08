@@ -4,11 +4,11 @@
 
 #include "LunokIoT.hpp"
 #include "../Device.hpp"
-#include "../Driver/NVS.hpp"
-#include "../Driver/Console.hpp"
-#include "../Driver/WiFi.hpp"
-#include "../Service/NTPService.hpp"
-#include "../Driver/I2C.hpp"
+#include "../Drivers/NVS.hpp"
+#include "../Drivers/Console.hpp"
+#include "../Drivers/WiFi.hpp"
+#include "../Services/NTPService.hpp"
+#include "../Drivers/I2C.hpp"
 
 namespace LunokIoT {
 //@TODO https://stackoverflow.com/questions/11711920/how-to-implement-multithread-safe-singleton-in-c11-without-using-mutex
