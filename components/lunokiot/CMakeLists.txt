@@ -1,7 +1,13 @@
 set(srcs "./src/LunokIoT.cpp")
 
-#esp32
-list(APPEND srcs "./src/ESP32/Task.cpp" "./src/ESP32/Device.cpp" "./src/ESP32/Driver.cpp" "./src/ESP32/Service.cpp" "./src/ESP32/Services/NTPService.cpp" "./src/ESP32/Drivers/Console.cpp" "./src/ESP32/Drivers/I2C.cpp" "./src/ESP32/Drivers/NVS.cpp" "./src/ESP32/Drivers/WiFi.cpp")
+#esp32 at this time, mandatory (no support for others)
+list(APPEND srcs "./src/ESP32/Task.cpp" "./src/ESP32/Device.cpp" 
+                "./src/ESP32/Driver.cpp" "./src/ESP32/Service.cpp" 
+                "./src/ESP32/Services/NTPService.cpp" 
+                "./src/ESP32/Drivers/Console.cpp" 
+                "./src/ESP32/Drivers/I2C.cpp" 
+                "./src/ESP32/Drivers/NVS.cpp" 
+                "./src/ESP32/Drivers/WiFi.cpp")
 
 if(CONFIG_LUNOKIOT_DEVICE_ESP32)
     list(APPEND srcs "./src/ESP32/Devices/ESP32.cpp")
@@ -12,6 +18,7 @@ endif()
 
 idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "./include"
-                    REQUIRES "freertos" "esp32 esp_common" "esp_system esp_wifi" "console nvs_flash")
+                    REQUIRES "freertos" "esp32 esp_common" 
+                    "esp_system esp_wifi" "console nvs_flash")
 
 #                    CONFIG_LUNOKIOT_DEVICE_ESP32
