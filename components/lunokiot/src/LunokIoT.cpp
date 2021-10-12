@@ -11,15 +11,15 @@
 #include "ESP32/Devices/M5AtomLite.hpp"
 #endif
 
-LunokIoT::Device * LunokIoT::Begin() {
+void LunokIoT::Begin() {
 #ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
     std::cout << "ESP32 GENERIC DEVICE ENABLED" << std::endl;
     ESP32Device * dev = new ESP32Device();
-    return dev;
+    return;
 #endif
 #ifdef CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE
     std::cout << "LOOOL M5LITE!!" << std::endl;
     M5AtomLiteDevice *dev = new M5AtomLiteDevice();
-    return dev;
+    return;
 #endif
 }

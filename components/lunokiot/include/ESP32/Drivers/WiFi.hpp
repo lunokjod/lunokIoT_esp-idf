@@ -10,6 +10,8 @@
 #include "esp_wifi.h"
 #include "esp_netif.h"
 
+#define DEFAULT_SCAN_LIST_SIZE 32
+
 namespace LunokIoT {
     class WiFiDriver : public Driver {
         public:
@@ -58,6 +60,10 @@ namespace LunokIoT {
             esp_event_handler_instance_t handler_test;
             esp_netif_t *ap_netif;
             esp_netif_t *sta_netif;
+            wifi_init_config_t cfg;
+            uint16_t number = DEFAULT_SCAN_LIST_SIZE;
+            wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
+            uint16_t ap_count = 0;
     };    
 }
 

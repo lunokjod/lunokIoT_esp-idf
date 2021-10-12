@@ -5,6 +5,7 @@
 #include "ESP32/Driver.hpp"
 #include "ESP32/Drivers/WiFi.hpp"
 #include <esp_log.h>
+#include "base/ANSI.hpp"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,7 +21,6 @@
 #define JOIN_TIMEOUT_MS (15000)
 #define WIFI_MAX_RETRIES 3
 #define WIFI_RECONNECT_TIMEOUT_MS (30000)
-#define DEFAULT_SCAN_LIST_SIZE 32
 
 const int CONNECTED_BIT = BIT0;
 const int WIFI_FAIL_BIT = BIT1;
@@ -50,45 +50,84 @@ int WiFiDriver::Scan(int argc, char **argv) {
         printf("WiFi must be deinit before use Scan\n");
         return 1;
     }
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    //ESP_ERROR_CHECK(esp_netif_init());
+    /*
+    esp_err_t loopCreated = esp_event_loop_create_default();
+    if ( ESP_OK != loopCreated ) {
+        const char *crashReason = esp_err_to_name(loopCreated);
+        printf("Loopdefault: %s\n", crashReason);
+        return 2;
+    }*/
+/*
     esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-    assert(sta_netif);
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    assert(sta_netif);*/
+    //cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    uint16_t number = DEFAULT_SCAN_LIST_SIZE;
-    wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
-    uint16_t ap_count = 0;
-    memset(ap_info, 0, sizeof(ap_info));
-
+    esp_wifi_set_storage(WIFI_STORAGE_FLASH);
     esp_wifi_set_mode(WIFI_MODE_STA);
+    
     esp_wifi_start();
-    printf("@DEBUG A\n");
+    printf("%p %s Start WiFi scan... ", this, this->name);
     fflush(stdout);
-    esp_wifi_scan_start(NULL, true);
-    printf("@DEBUG B\n");
+    ESP_ERROR_CHECK(esp_wifi_scan_start(NULL, true));
+    printf("Done!\n");
     esp_wifi_scan_get_ap_records(&number, ap_info);
-    printf("@DEBUG C\n");
-    esp_wifi_scan_get_ap_num(&ap_count);
-    printf("Total APs scanned = %u\n", ap_count);
-    for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
-        printf("SSID \t\t%s\n", ap_info[i].ssid);
-        printf("RSSI \t\t%d\n", ap_info[i].rssi);
-        //printf("%s\n", WifiTypeToString(ap_info[i].authmode));
-        if (ap_info[i].authmode != WIFI_AUTH_WEP) {
-            //printf("Pairwise Cipher \t%s\n", WiFiDriver::WifiCypherTypeToString(ap_info[i].pairwise_cipher));
-            //printf("Group Cipher \t%s\n", WiFiDriver::WifiCypherGroupToString(ap_info[i].group_cipher));
-        }
-        printf("Channel \t\t%d\n", ap_info[i].primary);
+
+    esp_err_t scanStatus = esp_wifi_scan_get_ap_num(&ap_count);
+    if ( ESP_OK != scanStatus ) {
+        printf("%p %s Scan get ap num error: %s\n", this, this->name, esp_err_to_name(scanStatus));
+        return 2;
     }
+    for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
+        uint8_t channel = ap_info[i].primary;
+        if ( channel > 14 ) { continue; }
+        int8_t strength = ap_info[i].rssi;
+        char * strengthQuality = nullptr;
+
+        if ( strength > -30) {
+            strengthQuality = (char*)"Amazing";
+            printf(TERM_BOLD);
+        } else if ( strength > -67) {
+            strengthQuality = (char*)"Very good";
+            printf(TERM_FG_GREEN);
+        } else if ( strength > -70) {
+            strengthQuality = (char*)"Okay ";
+            printf(TERM_FG_YELLOW);
+        } else if ( strength > -80) {
+            strengthQuality = (char*)"Not good";
+            printf(TERM_FG_RED);
+        } else { // if ( strength > -90) {
+            strengthQuality = (char*)"Unsusable";
+            printf(TERM_FG_GREY);
+        }
+
+        printf("CH: %2d ", channel);
+        printf("SSID: '%s' ", ap_info[i].ssid);
+        /*
+        -30 dBm 	Amazing
+        -67 dBm 	Very Good
+        -70 dBm 	Okay
+        -80 dBm 	Not Good
+        -90 dBm 	Unusable
+        */
+        printf("%ddBm (Quality: %s)", strength, strengthQuality);
+        printf("(%s)", WifiTypeToString(ap_info[i].authmode));
+        printf(TERM_RESET);
+        printf("\n");
+        /*
+        if (ap_info[i].authmode != WIFI_AUTH_WEP) {
+            printf("Pairwise Cipher: '%s' ", WiFiDriver::WifiCypherTypeToString(ap_info[i].pairwise_cipher));
+            printf("Group Cipher: '%s' ", WiFiDriver::WifiCypherGroupToString(ap_info[i].group_cipher));
+        }*/
+        
+    }
+    printf("%p %s APs found: %u\n", this, this->name, ap_count);
 
     esp_wifi_stop();
     esp_wifi_set_mode(WIFI_MODE_NULL);
     esp_wifi_deinit();
-    esp_event_loop_delete_default();
-    esp_netif_deinit();
+    //esp_event_loop_delete_default();
+    //esp_netif_deinit();
     
 
 
@@ -300,6 +339,10 @@ const char* WiFiDriver::WifiReasonToString(uint8_t errCode) {
 }
 
 void WiFiDriver::EventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    if ( this->initialized == false ) {
+        //printf("EventHandler working?\n");
+        return;
+    }
     if (event_base == WIFI_EVENT) {
         if (WIFI_EVENT_SCAN_DONE == event_id) {
             printf("WIFI Scan Done!\n");
@@ -429,51 +472,41 @@ void WiFiDriver::EventHandler(void* arg, esp_event_base_t event_base, int32_t ev
 }
 int WiFiDriver::Init(int argc, char **argv) {
     if (this->initialized) {
-        //printf("ERROR: Already initialized\n");
+        printf("ERROR: Already initialized\n");
         return 1;
     }
-    this->Resume(); // start the task again
     esp_log_level_set("wifi", ESP_LOG_NONE);
+
     
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&cfg);
-    esp_wifi_set_storage(WIFI_STORAGE_FLASH);
-    esp_wifi_set_mode(WIFI_MODE_STA);
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     this->initialized = true;
-    
+    this->Resume(); // start the task again    
     return 0;
 }
 
 
 int WiFiDriver::Deinit(int argc, char **argv) {
     if (false == this->initialized) {
-        //printf("ERROR: Isn't initialized\n");
+        printf("ERROR: Isn't initialized\n");
         return 1;
     }
-
-    esp_wifi_set_mode(WIFI_MODE_NULL);
-    esp_wifi_stop();
-
-    //esp_event_handler_instance_unregister(ESP_EVENT_ANY_BASE, ESP_EVENT_ANY_ID, &handler_test);
-
-    //esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &handler_anyid);
-    //esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &handler_ip);
-
-    esp_wifi_deinit();
-    
-    //esp_netif_destroy(this->sta_netif);
-    //esp_netif_destroy(this->ap_netif);
-    //this->sta_netif = nullptr;
-    //this->ap_netif = nullptr;
-
-    //esp_event_loop_delete_default();
-    //esp_netif_deinit();
-    //vEventGroupDelete(WifiEventGroup);
-    //WifiEventGroup = nullptr;
-    //this->initialized = false;
-
-    esp_log_level_set("wifi", ESP_LOG_NONE);
     this->Suspend(); // stops the tasks, no wifi to handle until Init again
+
+    if ( wifiSTAWithIP ) {
+        ESP_ERROR_CHECK(esp_wifi_disconnect());
+    }
+
+    //ESP_ERROR_CHECK(esp_event_handler_instance_unregister(ESP_EVENT_ANY_BASE, ESP_EVENT_ANY_ID, &handler_test));
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_NULL));
+    ESP_ERROR_CHECK(esp_wifi_stop());
+
+    ESP_ERROR_CHECK(esp_wifi_deinit());
+    
+    this->initialized = false;
+    esp_log_level_set("wifi", ESP_LOG_NONE);
     return 0;
 }
 
@@ -552,6 +585,11 @@ int WiFiDriver::_Disconnect(int argc, char **argv) {
 WiFiDriver::WiFiDriver(): Driver((const char*)"(-) WiFi", 1000) {
     printf("%p %s Setup\n", this, this->name);
     WiFiDriver::instance = this; //@TODO this is UGLY
+
+    this->Suspend(); // stops the tasks, no wifi to handle until Init
+    
+
+
     const esp_console_cmd_t cmdInit = {
         .command = "wifi_init",
         .help = "Poweron the WiFi device",
@@ -603,21 +641,17 @@ WiFiDriver::WiFiDriver(): Driver((const char*)"(-) WiFi", 1000) {
     };
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmdScan) );
 
+    WifiEventGroup = xEventGroupCreate(); // group for flags in event loops
+    esp_event_loop_create_default();
 
-    WifiEventGroup = xEventGroupCreate();
-    //xEventGroupClearBits(WifiEventGroup, WIFI_FAIL_BIT);
-    //xEventGroupClearBits(WifiEventGroup, CONNECTED_BIT);
     esp_netif_init();
 
-    esp_event_loop_create_default();
-    //this->ap_netif = esp_netif_create_default_wifi_ap();
+    cfg = WIFI_INIT_CONFIG_DEFAULT();
+
+    this->ap_netif = esp_netif_create_default_wifi_ap();
     this->sta_netif = esp_netif_create_default_wifi_sta();
-    
-    esp_event_handler_instance_register(ESP_EVENT_ANY_BASE, ESP_EVENT_ANY_ID, &WiFiDriver::_EventHandler, this, &handler_test);
-    //esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WiFiDriver::_EventHandler, this, &handler_anyid);
-    //esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &WiFiDriver::_EventHandler, this, &handler_ip);
-    
-    this->Suspend(); // stops the tasks, no wifi to handle until Init
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(ESP_EVENT_ANY_BASE, ESP_EVENT_ANY_ID, &WiFiDriver::_EventHandler, this, &handler_test));
+
 }
 
 bool WiFiDriver::Loop() {

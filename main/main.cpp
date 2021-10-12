@@ -1,5 +1,6 @@
 #include <iostream>
 #include <LunokIoT.hpp>
+#include <freertos/task.h>
 
 extern "C" void app_main(void) {
     std::cout << "app_main starting" << std::endl;

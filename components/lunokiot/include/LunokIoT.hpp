@@ -14,7 +14,7 @@ namespace LunokIoT {
 
 namespace LunokIoT {
     // here comes everyting related with LunokIoT (@TODO)
-    Device * Begin();
+    void Begin();
 }
 
 #endif // ___LUNOKIOT__MAIN___

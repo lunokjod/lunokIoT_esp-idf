@@ -597,14 +597,14 @@ NVSDriver::NVSDriver(): Driver((const char*)"(-) NVS", (unsigned long)-1) {
     printf("%p %s Setup\n", this, this->name);
     esp_err_t nvsResult = nvs_flash_init();
     if ( ESP_OK != nvsResult ) {
-        printf("%p %s ERROR: unable to mount NVS\n", this, this->name);
+        printf("%p %s ERROR: unable to mount NVS (%s)\n", this, this->name, esp_err_to_name(nvsResult));
         printf("System halted\n");
         fflush(stdout);
         while (true) { vTaskDelay(1000 / portTICK_PERIOD_MS); };
     }
     register_nvs();
 
-    printf("%p %s NVS availiable\n", this, this->name);
+    printf("%p %s availiable\n", this, this->name);
 
 }
 bool NVSDriver::Loop() {
