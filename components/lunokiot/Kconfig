@@ -1,10 +1,10 @@
 # https://www.kernel.org/doc/html/latest/kbuild/kconfig-language.html#introduction
 menu "lunokIoT"
-    choice LUNOKIOT_DEVICE
+    choice
         prompt "Device support"
         help
-            select Select device to support 
-        
+            select Select device to support
+        default LUNOKIOT_DEVICE_ESP32
         config LUNOKIOT_DEVICE_ESP32
             bool "ESP-32 based board"
             help

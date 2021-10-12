@@ -11,7 +11,7 @@ namespace LunokIoT {
     class M5AtomLiteDevice : public ESP32Device {
         public:
             M5AtomLiteDevice();
-            bool Loop();
+            //bool Loop();
     };
 
 }

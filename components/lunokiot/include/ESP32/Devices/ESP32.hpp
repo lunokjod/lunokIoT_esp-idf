@@ -23,7 +23,7 @@ namespace LunokIoT {
             static int Info(int argc, char **argv);
             static int LightSleep(int argc, char **argv);
             static int DeepSleep(int argc, char **argv);
-            ESP32Device();
+            ESP32Device(const char * devicename=(const char*)"(-) ESP32");
             bool Loop();
             void RegisterConsoleCommands(void);
             NVSDriver * nvs = nullptr;

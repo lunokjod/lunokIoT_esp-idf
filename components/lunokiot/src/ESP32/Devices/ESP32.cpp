@@ -359,7 +359,7 @@ void ESP32Device::RegisterConsoleCommands(void) {
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmdDeepSleep) );
 }
 
-ESP32Device::ESP32Device(): Device((const char*)"(-) ESP32") {
+ESP32Device::ESP32Device(const char* devicename): Device(devicename) {
     printf("%p %s Setup\n", this, this->name);
     this->_period = 2000;
     this->console = new ConsoleDriver();

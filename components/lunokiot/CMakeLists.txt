@@ -1,6 +1,6 @@
 set(srcs "./src/LunokIoT.cpp")
 
-#esp32 at this time, mandatory (no support for others)
+#esp32 at this time, mandatory (no support for others by now)
 list(APPEND srcs "./src/ESP32/Task.cpp" "./src/ESP32/Device.cpp" 
                 "./src/ESP32/Driver.cpp" "./src/ESP32/Service.cpp" 
                 "./src/ESP32/Services/NTPService.cpp" 
@@ -8,14 +8,18 @@ list(APPEND srcs "./src/ESP32/Task.cpp" "./src/ESP32/Device.cpp"
                 "./src/ESP32/Drivers/I2C.cpp" 
                 "./src/ESP32/Drivers/NVS.cpp" 
                 "./src/ESP32/Drivers/WiFi.cpp")
+message("                     LUNOKIOT CMAKE IS HERE!!!")
 
 if(CONFIG_LUNOKIOT_DEVICE_ESP32)
     list(APPEND srcs "./src/ESP32/Devices/ESP32.cpp")
-elseif(CONFIG_LUNOKIOT_M5STACK_ATOM_LITE)
+    message("                     DEVICE TYPE ESP32")
+elseif(CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE)
     list(APPEND srcs "./src/ESP32/Devices/ESP32.cpp")
     list(APPEND srcs "./src/ESP32/Devices/M5AtomLite.cpp")
+    message("                     DEVICE TYPE M5AtomLite")
 endif()
-
+message("")
+message("")
 idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "./include"
                     REQUIRES "freertos" "esp32 esp_common" 
