@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <unistd.h>
 #include <esp_sleep.h>
+#include <driver/adc.h>
 
 using namespace LunokIoT;
 
@@ -55,6 +56,12 @@ int ESP32Device::FreeMem(int argc, char **argv) {
 int ESP32Device::Heap(int argc, char **argv) {
     uint32_t heap_size = heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT);
     printf("min heap size: %u\n", heap_size);
+    return 0;
+}
+int ESP32Device::Hall(int argc, char **argv) {
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    int val = hall_sensor_read();
+    printf("Hall: %d\n", val);
     return 0;
 }
 int ESP32Device::Tasks(int argc, char **argv) {
@@ -272,6 +279,15 @@ void ESP32Device::RegisterConsoleCommands(void) {
         .argtable = nullptr
     };
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmdTasks) );
+    
+    const esp_console_cmd_t cmdHall = {
+        .command = "hall",
+        .help = "Get hall sensor value",
+        .hint = NULL,
+        .func = &ESP32Device::Hall,
+        .argtable = nullptr
+    };
+    ESP_ERROR_CHECK( esp_console_cmd_register(&cmdHall) );
 
     const esp_console_cmd_t cmdScheduler = {
         .command = "sched",

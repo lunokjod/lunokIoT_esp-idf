@@ -7,7 +7,7 @@ extern "C" void app_main(void) {
     LunokIoT::Begin();
     while(true) {
         vTaskDelay(1500 / portTICK_PERIOD_MS);
-        fflush(stdout);
+        //fflush(stdout);
     }
     std::cout << "app_main done" << std::endl;
 }

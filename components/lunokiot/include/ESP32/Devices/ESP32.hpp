@@ -19,6 +19,7 @@ namespace LunokIoT {
             static int Heap(int argc, char **argv);
             static int Tasks(int argc, char **argv);
             static int Scheduler(int argc, char **argv);
+            static int Hall(int argc, char **argv);
             static int Info(int argc, char **argv);
             static int LightSleep(int argc, char **argv);
             static int DeepSleep(int argc, char **argv);

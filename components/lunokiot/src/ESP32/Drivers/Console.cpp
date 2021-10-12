@@ -67,6 +67,7 @@ ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned lon
 
     /* Set command maximum length */
     //linenoiseSetMaxLineLen(1024);
+    linenoiseSetMultiLine(1);
 }
 
 bool ConsoleDriver::Loop() {
