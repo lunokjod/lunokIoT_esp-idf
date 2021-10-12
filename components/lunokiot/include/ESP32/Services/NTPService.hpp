@@ -10,6 +10,7 @@ namespace LunokIoT {
         public:
             NTPService();
             bool Loop();
+            static int _DateCmd(int argc, char **argv);
     };
 
 }
