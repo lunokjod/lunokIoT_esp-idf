@@ -23,8 +23,8 @@ M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite")
     printf("%p %s Setup\n", this, this->name);
     this->_period = 2000;
 
-
-    printf("%p %s I2C default port setup: $> i2cconfig --sda 25 --scl 21 --freq 10000\n", this, this->name);
+    printf("%p %s I2C GROVE port setup: $> i2cconfig --sda 26 --scl 32 --freq 10000\n", this, this->name);
+    printf("%p %s I2C ATOM-MATE port setup: $> i2cconfig --sda 19 --scl 22 --freq 10000\n", this, this->name);
     printf("%p %s End Setup\n", this, this->name);
 }
 #define LUNOKIOT_LOG_MARK_TIME_MS 60000
