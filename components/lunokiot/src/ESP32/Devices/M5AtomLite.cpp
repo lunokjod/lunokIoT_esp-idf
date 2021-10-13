@@ -2,10 +2,7 @@
 #include "ESP32/Device.hpp"
 #include "ESP32/Devices/ESP32.hpp"
 #include "ESP32/Devices/M5AtomLite.hpp"
-#include "ESP32/Drivers/NVS.hpp"
-#include "ESP32/Drivers/Console.hpp"
-#include "ESP32/Drivers/I2C.hpp"
-#include "ESP32/Services/NTPService.hpp"
+#include "ESP32/Drivers/SK6812.hpp"
 
 #include <freertos/task.h>
 #include <esp_spi_flash.h>
@@ -19,6 +16,9 @@
 
 using namespace LunokIoT;
 
+#define SK6812_PIN	gpio_num_t(27)
+
+
 M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite") {
     printf("%p %s Setup\n", this, this->name);
     this->_period = 2000;
@@ -26,6 +26,7 @@ M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite")
     printf("%p %s I2C GROVE port setup: $> i2cconfig --sda 26 --scl 32 --freq 10000\n", this, this->name);
     printf("%p %s I2C ATOM-MATE port setup: $> i2cconfig --sda 19 --scl 22 --freq 10000\n", this, this->name);
     printf("%p %s End Setup\n", this, this->name);
+    this->sk6812 = new SK6812Driver(SK6812_PIN);
 }
 #define LUNOKIOT_LOG_MARK_TIME_MS 60000
 
