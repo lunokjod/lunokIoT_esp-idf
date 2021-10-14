@@ -12,6 +12,7 @@ namespace LunokIoT {
             ButtonDriver(gpio_num_t gpio);
             bool Loop();
             gpio_num_t gpio;
+            int lastVal = 1;
     };
 
 }

@@ -20,6 +20,15 @@ using namespace LunokIoT;
 #define IR_PIN	gpio_num_t(12)
 #define SK6812_PIN	gpio_num_t(27)
 #define BUTTON_PIN	gpio_num_t(39)
+//@NOTE WARNING https://docs.espressif.com/projects/esp-idf/en/v4.3.1/esp32/api-reference/peripherals/gpio.html?highlight=gpio#_CPPv416gpio_intr_enable10gpio_num_t
+/* 
+Please do not use the interrupt of GPIO36 and GPIO39 when using ADC or Wi-Fi with 
+sleep mode enabled. Please refer to the comments of adc1_get_raw. Please refer 
+to section 3.11 of ‘ECO_and_Workarounds_for_Bugs_in_ESP32’ for the description of this issue. 
+As a workaround, call adc_power_acquire() in the app. 
+This will result in higher power consumption (by ~1mA), but will remove the glitches 
+on GPIO36 and GPIO39.
+*/
 
 
 M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite") {

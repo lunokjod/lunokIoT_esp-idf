@@ -25,7 +25,7 @@ message("")
 message("")
 idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "./include"
-                    REQUIRES "freertos" "esp32" "esp_common" 
+                    REQUIRES "freertos" "esp32" "esp_common" "driver"
                     "esp_system" "esp_wifi" "console" "nvs_flash")
                     #"FastLED"
 
