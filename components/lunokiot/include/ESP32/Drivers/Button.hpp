@@ -4,6 +4,7 @@
 #include "LunokIoT.hpp"
 #include "../Driver.hpp"
 #include <hal/gpio_types.h>
+#include <freertos/task.h>
 
 namespace LunokIoT {
 
@@ -13,6 +14,7 @@ namespace LunokIoT {
             bool Loop();
             gpio_num_t gpio;
             int lastVal = 1;
+            TickType_t lastEvent = 0;
     };
 
 }
