@@ -32,16 +32,19 @@ bool ButtonDriver::Loop() {
         TickType_t thisEvent = xTaskGetTickCount();        
         if ( ButtonStatus::Pressed == val ) {
             lastEvent = thisEvent;
+            this->_period = 3; // button pressed, high resolution poll to get accurated time
         } else if ( ButtonStatus::Released == val ) {
             TickType_t diffTime = thisEvent-lastEvent;
             if ( diffTime > 0 ) {
                 printf("%dms ", diffTime);
-                if ( diffTime > 400 ) {
-                    printf(" long press");
+                if ( diffTime > 499 ) {
+                    printf("long press");
                 } else {
-                    printf(" clicked");
+                    printf("click");
                 }
+                printf(" event");
             }
+            this->_period = 100; // return to normal state
             lastEvent = thisEvent;
         }
         printf("\n");
