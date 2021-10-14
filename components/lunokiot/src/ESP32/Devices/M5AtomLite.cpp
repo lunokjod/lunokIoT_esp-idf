@@ -2,6 +2,7 @@
 #include "ESP32/Device.hpp"
 #include "ESP32/Devices/ESP32.hpp"
 #include "ESP32/Devices/M5AtomLite.hpp"
+#include "ESP32/Drivers/Button.hpp"
 #include "ESP32/Drivers/SK6812.hpp"
 
 #include <freertos/task.h>
@@ -16,7 +17,9 @@
 
 using namespace LunokIoT;
 
+#define IR_PIN	gpio_num_t(12)
 #define SK6812_PIN	gpio_num_t(27)
+#define BUTTON_PIN	gpio_num_t(39)
 
 
 M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite") {
@@ -25,8 +28,12 @@ M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite")
 
     printf("%p %s I2C GROVE port setup: $> i2cconfig --sda 26 --scl 32 --freq 10000\n", this, this->name);
     printf("%p %s I2C ATOM-MATE port setup: $> i2cconfig --sda 19 --scl 22 --freq 10000\n", this, this->name);
-    printf("%p %s End Setup\n", this, this->name);
+
     this->sk6812 = new SK6812Driver(SK6812_PIN);
+    this->button = new ButtonDriver(BUTTON_PIN);
+
+    printf("%p %s End Setup\n", this, this->name);
+
 }
 #define LUNOKIOT_LOG_MARK_TIME_MS 60000
 

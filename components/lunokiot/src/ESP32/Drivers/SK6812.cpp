@@ -19,7 +19,7 @@
 static rmt_item32_t sk6812_bit0 = { };
 static rmt_item32_t sk6812_bit1 = { };
 static SK6812Driver * sk6812Instance;
-// https://github.com/UncleRus/esp-idf-lib/tree/master/components/led_strip
+// based on: https://github.com/UncleRus/esp-idf-lib/tree/master/components/led_strip
 
 static void IRAM_ATTR _rmt_adapter(const void *src, rmt_item32_t *dest, size_t src_size,
                                    size_t wanted_num, size_t *translated_size, size_t *item_num,
@@ -57,52 +57,25 @@ static void IRAM_ATTR sk6812_rmt_adapter(const void *src, rmt_item32_t *dest, si
     _rmt_adapter(src, dest, src_size, wanted_num, translated_size, item_num, &sk6812_bit0, &sk6812_bit1);
 }
 
-esp_err_t led_strip_init(gpio_num_t gpio) {
-    rmt_config_t config = RMT_DEFAULT_CONFIG_TX(gpio, (rmt_channel_t)0);
-    config.clk_div = LED_STRIP_RMT_CLK_DIV;
+using namespace LunokIoT;
 
-    rmt_config(&config);
-    rmt_driver_install(config.channel, 0, 0);
-
-    sample_to_rmt_t f = sk6812_rmt_adapter;
-    rmt_translator_init(config.channel, f);
-
-    return ESP_OK;
-}
-
-void led_strip_install()
-{
-    float ratio = (float)(APB_CLK_FREQ / LED_STRIP_RMT_CLK_DIV) / 1e09;
-
-    sk6812_bit0.duration0 = ratio * SK6812_T0H_NS;
-    sk6812_bit0.level0 = 1;
-    sk6812_bit0.duration1 = ratio * SK6812_T0L_NS;
-    sk6812_bit0.level1 = 0;
-    sk6812_bit1.duration0 = ratio * SK6812_T1H_NS;
-    sk6812_bit1.level0 = 1;
-    sk6812_bit1.duration1 = ratio * SK6812_T1L_NS;
-    sk6812_bit1.level1 = 0;
-
-
-}
 void SK6812Driver::SetLedColor(uint32_t color) {
     RGBColor nuColor;
     nuColor.raw = color;
-    printf("R: %d\n", nuColor.r);
-    printf("G: %d\n", nuColor.g);
-    printf("B: %d\n", nuColor.b);
-    printf("COLOR: 0x%x\n", nuColor.raw);
+    printf("R: %3d, ", nuColor.r);
+    printf("G: %3d, ", nuColor.g);
+    printf("B: %3d, ", nuColor.b);
+    printf("RAW: 0x%x\n", nuColor.raw);
     this->currentLedColor.raw = color;
 }
-using namespace LunokIoT;
+
 
 static struct {
     struct arg_int *color;
     struct arg_end *end;
 } setLedColorArgs;
 
-static int SetColorCmd(int argc, char **argv)
-{
+int SK6812Driver::_SetColorCmd(int argc, char **argv) {
     int nerrors = arg_parse(argc, argv, (void **) &setLedColorArgs);
     if (nerrors != 0) {
         arg_print_errors(stderr, setLedColorArgs.end, argv[0]);
@@ -117,11 +90,32 @@ static int SetColorCmd(int argc, char **argv)
     return 0;
 }
 
-SK6812Driver::SK6812Driver(gpio_num_t gpio): Driver((const char*)"(-) SK6812", (unsigned long)333), gpio(gpio) {
+SK6812Driver::SK6812Driver(gpio_num_t gpio): Driver((const char*)"(-) SK6812", (unsigned long)1000), gpio(gpio) {
     printf("%p %s Setup\n", this, this->name);
     sk6812Instance = this;
-    led_strip_install();
-    led_strip_init(this->gpio);
+
+//void led_strip_install() {
+    float ratio = (float)(APB_CLK_FREQ / LED_STRIP_RMT_CLK_DIV) / 1e09;
+    sk6812_bit0.duration0 = ratio * SK6812_T0H_NS;
+    sk6812_bit0.level0 = 1;
+    sk6812_bit0.duration1 = ratio * SK6812_T0L_NS;
+    sk6812_bit0.level1 = 0;
+    sk6812_bit1.duration0 = ratio * SK6812_T1H_NS;
+    sk6812_bit1.level0 = 1;
+    sk6812_bit1.duration1 = ratio * SK6812_T1L_NS;
+    sk6812_bit1.level1 = 0;
+
+//esp_err_t led_strip_init(gpio_num_t gpio) {
+    rmt_config_t config = RMT_DEFAULT_CONFIG_TX(this->gpio, (rmt_channel_t)0);
+    config.clk_div = LED_STRIP_RMT_CLK_DIV;
+
+    rmt_config(&config);
+    rmt_driver_install(config.channel, 0, 0);
+
+    sample_to_rmt_t f = sk6812_rmt_adapter;
+    rmt_translator_init(config.channel, f);
+
+
 
     setLedColorArgs.color = arg_int0(NULL, "color", "0xBBRRGG", "Set the M5Atom lite led color");
     setLedColorArgs.end = arg_end(2);
@@ -130,7 +124,7 @@ SK6812Driver::SK6812Driver(gpio_num_t gpio): Driver((const char*)"(-) SK6812", (
         .command = "led_color",
         .help = "Set the M5Atom lite led color",
         .hint = NULL,
-        .func = &SetColorCmd,
+        .func = &SK6812Driver::_SetColorCmd,
         .argtable = &setLedColorArgs
     };
     esp_console_cmd_register(&argSetColorCmd);
@@ -141,7 +135,7 @@ bool SK6812Driver::Loop() {
     //printf("%s Driver Loop\n", this->name);
 
     //led_strip_flush(&strip);
-    esp_err_t done = rmt_wait_tx_done((rmt_channel_t)0, pdMS_TO_TICKS(100)); // pdMS_TO_TICKS(1000));
+    esp_err_t done = rmt_wait_tx_done((rmt_channel_t)0, pdMS_TO_TICKS(999)); // pdMS_TO_TICKS(1000));
     if ( ESP_OK == done ) {
         ets_delay_us(50);
         const uint8_t * memLocationOfLedColor = (const uint8_t *)&currentLedColor;

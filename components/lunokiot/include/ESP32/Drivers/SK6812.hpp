@@ -24,6 +24,7 @@ namespace LunokIoT {
             void SetLedColor(uint32_t color);
             gpio_num_t gpio;
             RGBColor currentLedColor;
+            static int _SetColorCmd(int argc, char **argv);
     };
 
 }
