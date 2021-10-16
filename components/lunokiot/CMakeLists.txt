@@ -19,6 +19,12 @@ elseif(CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE)
     list(APPEND srcs "./src/ESP32/Drivers/SK6812.cpp")
     list(APPEND srcs "./src/ESP32/Drivers/Button.cpp")
     message("                     DEVICE TYPE M5AtomLite")
+elseif(CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS)
+    list(APPEND srcs "./src/ESP32/Devices/ESP32.cpp")
+    list(APPEND srcs "./src/ESP32/Devices/M5StickCPlus.cpp")
+    list(APPEND srcs "./src/ESP32/Drivers/Button.cpp")
+    list(APPEND srcs "./src/ESP32/Drivers/AXP192.cpp")
+    message("                     DEVICE TYPE M5StickCPlus")
 endif()
 message("---------------------------------------------------------")
 message("")
@@ -27,6 +33,4 @@ idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "./include"
                     REQUIRES "freertos" "esp32" "esp_common" "driver"
                     "esp_system" "esp_wifi" "console" "nvs_flash")
-                    #"FastLED"
 
-#                    CONFIG_LUNOKIOT_DEVICE_ESP32

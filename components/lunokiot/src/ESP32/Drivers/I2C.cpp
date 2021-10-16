@@ -34,13 +34,13 @@ extern "C" {
 
 static const char *TAG = "cmd_i2ctools";
 
+i2c_port_t i2c_port = I2C_NUM_0;
+
 static gpio_num_t i2c_gpio_sda = gpio_num_t(18);
 static gpio_num_t i2c_gpio_scl = gpio_num_t(19);
 static uint32_t i2c_frequency = 100000;
-static i2c_port_t i2c_port = I2C_NUM_0;
 
-static esp_err_t i2c_get_port(int port, i2c_port_t *i2c_port)
-{
+esp_err_t i2c_get_port(int port, i2c_port_t *i2c_port) {
     if (port >= I2C_NUM_MAX) {
         ESP_LOGE(TAG, "Wrong port number: %d", port);
         return ESP_FAIL;

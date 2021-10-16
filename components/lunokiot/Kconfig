@@ -13,5 +13,9 @@ menu "lunokIoT"
             bool "M5Stack Atom Lite"
             help
                 Enable support for M5Stack Atom lite device
+        config LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS
+            bool "M5StickC Plus"
+            help
+                Enable support for M5Stack Stick C Plus
     endchoice
 endmenu
