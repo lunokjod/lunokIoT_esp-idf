@@ -38,12 +38,15 @@ using namespace LunokIoT;
     this->DetectI2CHardware("Hy2.0-4P", 32,33);
     this->DetectI2CHardware("Hat", 0,26);
 */
+// Hy2.0-4P/Grove
 #define I2C0_SCL gpio_num_t(33)
 #define I2C0_SDA gpio_num_t(32)
 
+// internal
 #define I2C1_SCL gpio_num_t(22)
 #define I2C1_SDA gpio_num_t(21)
 
+// hat
 #define I2C2_SCL gpio_num_t(26)
 #define I2C2_SDA gpio_num_t(0)
 
@@ -63,19 +66,20 @@ on GPIO36 and GPIO39.
 
 M5StickCPlusDevice::M5StickCPlusDevice(): ESP32Device((const char*)"(-) M5StickCPlus") {
     printf("%p %s Setup\n", this, this->name);
-    this->_period = 2000;
-    printf("%p %s I2C GROVE port setup: $> i2cconfig --sda 32 --scl 33 --freq 10000\n", this, this->name);
-    printf("%p %s I2C Internal port setup: $> i2cconfig --sda 21 --scl 22 --freq 10000\n", this, this->name);
-    printf("%p %s I2C Hat port setup: $> i2cconfig --sda 0 --scl 26 --freq 10000\n", this, this->name);
+    //this->_period = 2000;
+    printf("%p %s I2C Hy2.0-4P/GROVE port setup: $> i2cconfig --sda 32 --scl 33 --freq 400000\n", this, this->name);
+    printf("%p %s I2C Internal port setup: $> i2cconfig --sda 21 --scl 22 --freq 400000\n", this, this->name);
+    printf("%p %s I2C Hat port setup: $> i2cconfig --sda 0 --scl 26 --freq 400000\n", this, this->name);
     this->button0 = new ButtonDriver(BUTTON0_PIN);
     this->button1 = new ButtonDriver(BUTTON1_PIN);
-    this->axp192 = new AXP192Driver(I2C2_SDA, I2C2_SCL);
+    // AXP192 is connected to internal i2c
+    this->axp192 = new AXP192Driver(I2C1_SDA, I2C1_SCL);
     printf("%p %s End Setup\n", this, this->name);
 
 }
-#define LUNOKIOT_LOG_MARK_TIME_MS 60000
+//#define LUNOKIOT_LOG_MARK_TIME_MS 60000
 
-//TickType_t nextRefresh = 0;z
+//TickType_t nextRefresh = 0;
 //bool M5AtomLiteDevice::Loop() {
     /*
     TickType_t now = (xTaskGetTickCount()/portTICK_RATE_MS);

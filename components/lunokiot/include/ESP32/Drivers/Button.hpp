@@ -16,6 +16,12 @@ namespace LunokIoT {
             int lastVal = 1;
             TickType_t lastEvent = 0;
     };
+    
+    /* @TODO i2c button
+    class I2CButtonDriver: public ButtonDriver {
+            I2CButtonDriver();
+            bool Loop();
+    };*/
 
 }
 

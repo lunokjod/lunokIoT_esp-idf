@@ -8,11 +8,13 @@
 #include "esp_console.h"
 #include "esp_log.h"
 
-#include "base/I2CDatabase.h"
+#include "base/I2CDatabase.hpp"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
 // https://raw.githubusercontent.com/espressif/esp-idf/b22c975a3bc5960b9a1efd631d3dd012998086f3/examples/peripherals/i2c/i2c_tools/main/cmd_i2ctools.c
 /* cmd_i2ctools.c
 
@@ -23,26 +25,38 @@ extern "C" {
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-#define I2C_MASTER_TX_BUF_DISABLE 0 /*!< I2C master doesn't need buffer */
-#define I2C_MASTER_RX_BUF_DISABLE 0 /*!< I2C master doesn't need buffer */
-#define WRITE_BIT I2C_MASTER_WRITE  /*!< I2C master write */
-#define READ_BIT I2C_MASTER_READ    /*!< I2C master read */
-#define ACK_CHECK_EN 0x1            /*!< I2C master will check ack from slave*/
-#define ACK_CHECK_DIS 0x0           /*!< I2C master will not check ack from slave */
-#define ACK_VAL 0x0                 /*!< I2C ack value */
-#define NACK_VAL 0x1                /*!< I2C nack value */
-
-static const char *TAG = "cmd_i2ctools";
+/*
+#define I2C_MASTER_TX_BUF_DISABLE 0 // I2C master doesn't need buffer
+#define I2C_MASTER_RX_BUF_DISABLE 0 // I2C master doesn't need buffer
+#define WRITE_BIT I2C_MASTER_WRITE  // I2C master write
+#define READ_BIT I2C_MASTER_READ    // I2C master read
+#define ACK_CHECK_EN 0x1            // I2C master will check ack from slave
+#define ACK_CHECK_DIS 0x0           // I2C master will not check ack from slave
+#define ACK_VAL 0x0                 // I2C ack value
+#define NACK_VAL 0x1                // I2C nack value
+*/
 
 i2c_port_t i2c_port = I2C_NUM_0;
 
+// default i2c config
+#ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
 static gpio_num_t i2c_gpio_sda = gpio_num_t(18);
 static gpio_num_t i2c_gpio_scl = gpio_num_t(19);
-static uint32_t i2c_frequency = 100000;
+#endif // CONFIG_LUNOKIOT_DEVICE_ESP32
+#ifdef CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE // defaults to Hy2.0-4P/GROVE 
+static gpio_num_t i2c_gpio_sda = gpio_num_t(26);
+static gpio_num_t i2c_gpio_scl = gpio_num_t(32);
+#endif // CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE
+#ifdef CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS // defaulting to HAT pins
+static gpio_num_t i2c_gpio_sda = gpio_num_t(0);
+static gpio_num_t i2c_gpio_scl = gpio_num_t(26);
+#endif // CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS
+
+static uint32_t i2c_frequency = I2C_MASTER_FREQ_HZ;
 
 esp_err_t i2c_get_port(int port, i2c_port_t *i2c_port) {
     if (port >= I2C_NUM_MAX) {
-        ESP_LOGE(TAG, "Wrong port number: %d", port);
+        printf("Wrong port number: %d\n", port);
         return ESP_FAIL;
     }
     switch (port) {
@@ -129,8 +143,9 @@ static void register_i2cconfig(void)
     ESP_ERROR_CHECK(esp_console_cmd_register(&i2cconfig_cmd));
 }
 
-static int do_i2cdetect_cmd(int argc, char **argv)
-{
+static int do_i2cdetect_cmd(int argc, char **argv) {
+    bool deviceFoundAt[128] = { false };
+    bool showBrief = false;
     i2c_driver_install(i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
     i2c_master_driver_initialize();
     uint8_t address;
@@ -148,6 +163,8 @@ static int do_i2cdetect_cmd(int argc, char **argv)
             i2c_cmd_link_delete(cmd);
             if (ret == ESP_OK) {
                 printf("%02x ", address);
+                deviceFoundAt[address] = true;
+                showBrief = true;
             } else if (ret == ESP_ERR_TIMEOUT) {
                 printf("UU ");
             } else {
@@ -158,6 +175,16 @@ static int do_i2cdetect_cmd(int argc, char **argv)
     }
 
     i2c_driver_delete(i2c_port);
+
+    if ( showBrief ) {
+        printf("\nList of devices found in i2c (sda: 0x%x, scl: 0x%x, speed: %dHz):\n", i2c_gpio_sda, i2c_gpio_scl, i2c_frequency);
+        for(uint8_t current=0;current<128;current++) {
+            if ( true == deviceFoundAt[current] ) {
+                printf(" * %s\n", i2cDatabase[current]);
+            }
+        }
+        printf("End of i2c device list\n");
+    }
     return 0;
 }
 
@@ -230,9 +257,9 @@ static int do_i2cget_cmd(int argc, char **argv)
             printf("\r\n");
         }
     } else if (ret == ESP_ERR_TIMEOUT) {
-        ESP_LOGW(TAG, "Bus is busy");
+        printf("Bus is busy\n");
     } else {
-        ESP_LOGW(TAG, "Read failed");
+        printf("Read failed\n");
     }
     free(data);
     i2c_driver_delete(i2c_port);
@@ -295,11 +322,11 @@ static int do_i2cset_cmd(int argc, char **argv)
     esp_err_t ret = i2c_master_cmd_begin(i2c_port, cmd, 1000 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
     if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Write OK");
+        printf("Write OK\n");
     } else if (ret == ESP_ERR_TIMEOUT) {
-        ESP_LOGW(TAG, "Bus is busy");
+        printf("Bus is busy\n");
     } else {
-        ESP_LOGW(TAG, "Write Failed");
+        printf("Write Failed\n");
     }
     i2c_driver_delete(i2c_port);
     return 0;
@@ -343,7 +370,7 @@ static int do_i2cdump_cmd(int argc, char **argv)
         size = i2cdump_args.size->ival[0];
     }
     if (size != 1 && size != 2 && size != 4) {
-        ESP_LOGE(TAG, "Wrong read size. Only support 1,2,4");
+        printf("Wrong read size. Only support 1,2,4\n");
         return 1;
     }
     i2c_driver_install(i2c_port, I2C_MODE_MASTER, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
@@ -430,6 +457,19 @@ void register_i2ctools(void)
 }
 #endif
 
+// https://static-cdn.m5stack.com/image/m5-docs_table/I2C_Address.pdf
+
+void BuildI2CDatabase() { // database maybe are too for this x'D
+    i2cDatabase[I2C_ADDR_BMM150] = "BMM150";
+    i2cDatabase[I2C_ADDR_MFRC522] = "MFRC522 (RFID)";
+    i2cDatabase[I2C_ADDR_AXP192] = "AXP192 (PMU)"; // M5SickC/CPlus
+    i2cDatabase[I2C_ADDR_SHT30] = "SHT30";
+    i2cDatabase[I2C_ADDR_BM8563] = "BM8563 (RTC)";
+    i2cDatabase[I2C_ADDR_SGP30] = "SGP30";
+    i2cDatabase[I2C_ADDR_MPU6886] = "MPU6886 (MEMS)"; //M5AtomLite/Matrix, M5StickC/CPlus
+    i2cDatabase[I2C_ADDR_BMP280] = "BMP280";
+}
+
 using namespace LunokIoT;
 
 I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", -1) {
@@ -445,6 +485,7 @@ I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", -1) {
     wifiDriverInstance = this; //@TODO this is UGLY
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmdInit) );
 */
+    BuildI2CDatabase();
     register_i2ctools();
 
 }

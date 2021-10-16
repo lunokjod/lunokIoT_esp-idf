@@ -17,13 +17,14 @@
 #endif
 
 void LunokIoT::Begin() {
+    std::cout << "lunokIoT device: "; 
 #ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
-    std::cout << "ESP32 GENERIC DEVICE ENABLED" << std::endl;
+    std::cout << "ESP32 generic" << std::endl;
     ESP32Device * dev = new ESP32Device();
     return;
 #endif
 #ifdef CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE
-    std::cout << "LOOOL M5LITE!!" << std::endl;
+    std::cout << "M5Atom Lite" << std::endl;
     M5AtomLiteDevice *dev = new M5AtomLiteDevice();
     return;
 #endif
