@@ -21,6 +21,7 @@ void Task::Resume() {
 Task::Task(const char * name, unsigned long period) : TaskTemplate(period) { 
     this->Lock = xSemaphoreCreateMutex();
     this->_id = Task::CreatedTasks;
+    // explicit name copy
     size_t nameLen = strlen(name);
     this->name = (char*)malloc(nameLen+1);
     strcpy(this->name, name);
@@ -33,11 +34,11 @@ Task::Task(const char * name, unsigned long period) : TaskTemplate(period) {
     */
     //printf("%p %s Task callback every: %lums \n", this, this->name, this->_period);
     xTaskCreate(
-        &Task::Callback,    // Function that should be called
-        this->name,       // Name of the task (for debugging)
-        2000,            // Stack size (bytes)
-        this,            // Parameter to pass
-        tskIDLE_PRIORITY,               // Task priority
-        &_taskHandle       // Task handle
+        &Task::Callback,                    // Function that should be called
+        this->name,                         // Name of the task (for debugging)
+        2000,                               // Stack size (bytes) @TODO must be set to configMINIMAL_STACK_SIZE
+        this,                               // Parameter to pass
+        tskIDLE_PRIORITY,                   // Task priority
+        &_taskHandle                        // Task handle
     );
 };

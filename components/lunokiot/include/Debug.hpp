@@ -1,7 +1,7 @@
 #ifndef __LUNOKIOT__DEBUG___
 #define __LUNOKIOT__DEBUG___
 
-
+/*
 #ifndef LUNOKIOT_SERIAL_SPEED
 #define LUNOKIOT_SERIAL_SPEED 115200
 #endif // LUNOKIOT_SERIAL_SPEED
@@ -51,5 +51,5 @@ extern HardwareSerial _lunokIoT_Serial_Debug;
 #define DebugOPrintf(...)
 
 #endif // LUNOKIOT_DEBUG
-
+*/
 #endif // __LUNOKIOT__DEBUG___

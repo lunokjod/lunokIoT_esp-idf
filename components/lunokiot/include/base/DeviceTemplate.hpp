@@ -7,7 +7,7 @@
 
 using namespace LunokIoT;
 
-class DeviceTemplate : public Task {
+class DeviceTemplate : public Task { //@TODO must be renamed to DeviceBaseClass
     public:
         DeviceTemplate(const char *deviceName=(const char*)"Device template") : Task(deviceName, 50) {
             

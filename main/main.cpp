@@ -5,6 +5,7 @@
 extern "C" void app_main(void) {
     std::cout << "app_main starting" << std::endl;
     LunokIoT::Begin();
+    // app code must be implemented here
     while(true) {
         vTaskDelay(1500 / portTICK_PERIOD_MS);
         //fflush(stdout);

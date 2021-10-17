@@ -20,8 +20,8 @@ namespace LunokIoT {
         public:
             ::SemaphoreHandle_t Lock;
             char * name =nullptr;
-            static size_t CreatedTasks;
-            Task(const char* name, unsigned long period);
+            static size_t CreatedTasks; // counter
+            Task(const char* name, unsigned long periods);
             virtual bool Loop() { // return false if want to end the task
                 printf("%p %s id: %u Loop\n", this, this->name, this->_id);
                 return true;
@@ -60,8 +60,9 @@ namespace LunokIoT {
                 }
                 if ( nullptr !=  this->name ) {
                     free(this->name);
+                    this->name = nullptr;
                 }
-                DebugOPrintf("delete\n");
+                //DebugOPrintf("delete\n");
             };
             TaskHandle_t _taskHandle = NULL;
             size_t _id = 0;

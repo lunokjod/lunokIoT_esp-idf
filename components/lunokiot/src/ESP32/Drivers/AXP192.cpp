@@ -1,28 +1,58 @@
+#include <driver/i2c.h>     // ESP32 i2c
+#include <hal/gpio_types.h> // ESP32 gpio
+
 #include "LunokIoT.hpp"
 #include "ESP32/Driver.hpp"
 #include "ESP32/Drivers/AXP192.hpp"
 #include "ESP32/Drivers/Button.hpp"
-#include <hal/gpio_types.h>
-#include "driver/i2c.h"
 #include "ESP32/Drivers/I2C.hpp"
-#include "base/I2CDatabase.hpp"
+
 
 using namespace LunokIoT;
 
-AXP192Driver::AXP192Driver(gpio_num_t sdagpio, gpio_num_t sclgpio): 
-                                       Driver((const char*)"(-) AXP192", (unsigned long)PEK_BUTTON_POOL_TIME), 
-                                        sda(sdagpio), scl(sclgpio) {
-    printf("%p %s Setup sda=%d scl=%d\n", this, this->name, sda, scl);
+
+AXP192Driver::AXP192Driver(i2c_port_t i2cport, uint32_t i2cfrequency, gpio_num_t i2csdagpio, gpio_num_t i2csclgpio, uint8_t i2caddress): 
+                                       DriverBaseClass((const char*)"(-) AXP192", (unsigned long)PEK_BUTTON_POOL_TIME), 
+                                        port(i2cport), frequency(i2cfrequency), sda(i2csdagpio), scl(i2csclgpio), address(i2caddress) {
+    printf("%p %s Setup (i2c port: %d, sda=%d scl=%d, addr:%d)\n", this, name, port, sda, scl, address);
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html
     
+    
+    /*
+    //@TODO my last implementation in arduino (must be ported here)
+        this->_i2cWire.begin(sda, scl, freq);
+        this->EnableEXTEN(true);
+        this->EnableBACKUP(true);
+        this->SetDCDC1Voltage(3300);
+        this->SetDCDC2Voltage(0);
+        this->SetDCDC3Voltage(0);
+        this->SetLDO2Voltage(0); // no screen by default
+        this->SetLDO3Voltage(0); // obious, no backlight :P
+        this->SetGPIO0Voltage(-1);
+
+        // hardcoded values :-(
+        this->WriteByte(CONTROL::ADC_RATE_TS_PIN, 0b11110010);  // ADC 200Hz
+        this->WriteByte(CONTROL::ADC_ENABLE_1, 0b11111111);  // ADC All Enable
+        this->WriteByte(CONTROL::CHARGE_CONTROL_1, 0b11000000);  // Charge 4.2V, 100mA
+        this->WriteByte(CONTROL::POWER_BUTTON, 0b00001100);  // 128ms, PW OFF 4S
+        this->WriteByte(CONTROL::VBUS_IPSOUT_CHANNEL, 0b10000000);  // VBUS Open
+        this->WriteByte(CONTROL::BATTERY_CHARGE_HIGH_TEMP, 0b11111100);  // Temp Protection
+        this->WriteByte(SHUTDOWN_BATTERY_CHGLED_CONTROL, 0b00000100);  // Power Off 3.0V
+*/
+
+    //@TODO setup the AXP via i2c
+
+    // PEK_PARAMETHERS must be set
+    // i2c Step 1, configure:
+
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
-    printf("%p (-) Button Setup sda=%d scl=%d reg=0x%x bitmask=0x%x\n", this, sda, scl, REGISTERS::IRQ_STATUS_3, PEK_BUTTON::MASK);
+    printf("%p (-) Button Setup (i2c reg=0x%x bitmask=0x%x)\n", this, REGISTERS::IRQ_STATUS_3, PEK_BUTTON::MASK);
 }
 
 bool AXP192Driver::Loop() {
     // @NOTE the following code must be ported to some kind of inheritance of Button, and Device must expose it as normal GPIO button
 
-
+/*
     // i2c Step 1, configure:
     i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000
         .mode = I2C_MODE_MASTER,
@@ -63,8 +93,8 @@ bool AXP192Driver::Loop() {
     }
 
 
-    //if ( PEK_BUTTON::RELEASED != buttonStatus ) {
-    const uint8_t write_buf[2] = { REGISTERS::IRQ_STATUS_3, buttonStatus }; //PEK_BUTTON::MASK };
+    // AXP192 irq ack
+    const uint8_t write_buf[2] = { REGISTERS::IRQ_STATUS_3, PEK_BUTTON::MASK };
     res = i2c_master_write_to_device(I2C_NUM_0, I2C_ADDR_AXP192, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         printf("%s:%d %s() i2c_master_write_to_device error: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
@@ -78,15 +108,15 @@ bool AXP192Driver::Loop() {
 
     // logic button goes here:
 
-    if ( buttonStatus ) {
-        printf("@DEBUG (AXP192 i2c button: 0x%x OLD: 0x%x\n", buttonStatus, lastVal);
-    }
     TickType_t thisEvent = xTaskGetTickCount();
     if ( buttonStatus != lastVal ) { // only if state of button changes
 
-        printf("%p (-) Button(NA) ", this);
-        printf("%s", buttonStatus?"Pressed":"Released" ); // inversed from Button GPIO
-        
+        printf("%p (-) Button(-1) ", this);
+        if ( buttonStatus == PEK_BUTTON::RELEASED) {
+            printf("Released");
+        } else {
+            printf("Pressed");
+        }        
         if ( PEK_BUTTON::RELEASED == buttonStatus ) {
             // relased now
             TickType_t diffTime = thisEvent-lastEvent;
@@ -106,17 +136,14 @@ bool AXP192Driver::Loop() {
         lastEvent = thisEvent;
     }
     lastVal = buttonStatus;
-    /*
-    // the most important, ¿is the user pushing the POWER BUTTON?
+
+    // the most important, ¿is the user pushing the POWER BUTTON? send a warning!
 
     if ( PEK_BUTTON::LONG == buttonStatus ) { // do you like spagetti?
         if ( warnUserForPowerOff == true ) { // must warn user what are doing? (poweroff in 6 seconds!)
-            //warnUserForPowerOff = false;
-            TickType_t difftime = (xTaskGetTickCount() - lastEvent)/portTICK_RATE_MS;
-            printf("\n\n /!\\ /!\\ /!\\ WARNING!!! RELEASE the BUTTON before %d seconds to AVOID POWERDOWN /!\\ /!\\ /!\\ \n\n\n", difftime/1000);
+            printf("\n\n /!\\ /!\\ /!\\ WARNING!!! RELEASE the BUTTON before 6 seconds to AVOID POWERDOWN /!\\ /!\\ /!\\ \n\n\n");
             this->_period = PEK_BUTTON_SENSING_TIME; // button pressed, high resolution poll to get accurated time
             fflush(stdout);
-            lastVal = buttonStatus;
             return true;
         }
     } else if ( PEK_BUTTON::RELEASED == buttonStatus ) {
@@ -125,8 +152,6 @@ bool AXP192Driver::Loop() {
             warnUserForPowerOff = true;
         }
     }
-    //printf("@DEBUG status: %d last: %d\n", buttonStatus, lastVal);
-    */
-
+*/
     return true;
 }
