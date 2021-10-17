@@ -36,7 +36,6 @@ extern "C" {
 #define NACK_VAL 0x1                // I2C nack value
 */
 
-i2c_port_t i2c_port = I2C_NUM_0;
 
 // default i2c config
 #ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
@@ -53,6 +52,9 @@ static gpio_num_t i2c_gpio_scl = gpio_num_t(26);
 #endif // CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS
 
 static uint32_t i2c_frequency = I2C_MASTER_FREQ_HZ;
+i2c_port_t i2c_port = I2C_DEFAULT_PORT; // defaults to 1, 0 is used by drivers
+
+const char *i2cDatabase[128] = { nullptr };
 
 esp_err_t i2c_get_port(int port, i2c_port_t *i2c_port) {
     if (port >= I2C_NUM_MAX) {
@@ -75,7 +77,7 @@ esp_err_t i2c_get_port(int port, i2c_port_t *i2c_port) {
 
 static esp_err_t i2c_master_driver_initialize(void)
 {
-    i2c_config_t conf; 
+    i2c_config_t conf = { }; 
     /* = {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = i2c_gpio_sda,

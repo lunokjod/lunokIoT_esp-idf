@@ -2,8 +2,7 @@
 #define ___LUNOKIOT__ESP32_TASK____
 
 #include "LunokIoT.hpp"
-#include "Debug.hpp"
-#include "base/TaskTemplate.hpp"
+#include "../base/TaskTemplate.hpp"
 
 #include <limits.h>
 #include <climits>

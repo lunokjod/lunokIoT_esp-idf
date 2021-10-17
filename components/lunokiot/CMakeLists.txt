@@ -35,7 +35,7 @@ lunokIoT is here!
 [0m")
 
 #esp32 at this time, mandatory (no support for others by now)
-list(APPEND srcs "./src/ESP32/Task.cpp" "./src/ESP32/Device.cpp" 
+list(APPEND srcs "./src/ESP32/Task.cpp" "./src/TaskBaseClass.cpp" "./src/ESP32/Device.cpp" 
                 "./src/ESP32/Driver.cpp" "./src/ESP32/Service.cpp" 
                 "./src/ESP32/Services/NTPService.cpp" 
                 "./src/ESP32/Drivers/Console.cpp" 

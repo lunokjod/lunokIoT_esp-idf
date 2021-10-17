@@ -2,29 +2,32 @@
 #define ___LUNOKIOT___DRIVER___BASE___
 
 #include "../LunokIoT.hpp"
-#include "../Task.hpp"
-#include "DeviceTemplate.hpp"
+#include "TaskTemplate.hpp"
+//#include "../Task.hpp"
 
 //@TODO reflect this on Kconfig
 #ifndef CONFIG_DEFAULT_LUNOKIOT_DRIVER_LOOP_TIME
-#define CONFIG_DEFAULT_LUNOKIOT_DRIVER_LOOP_TIME -1 /* task disable */
+#define CONFIG_DEFAULT_LUNOKIOT_DRIVER_LOOP_TIME -1 /* task suspended */
 #endif //CONFIG_DEFAULT_LUNOKIOT_DRIVER_LOOP_TIME
 
 using namespace LunokIoT;
 
 class DriverBaseClass : public TaskBaseClass {
     public:
-        DriverBaseClass(const char *name=(const char*)"NOTSET_DEVICE", unsigned long loopPeriod=CONFIG_DEFAULT_LUNOKIOT_DRIVER_LOOP_TIME) 
-                            : TaskBaseClass(name, loopPeriod) {
+        DriverBaseClass(const char *name=(const char*)"NOTSET_DEVICE", unsigned long period=CONFIG_DEFAULT_LUNOKIOT_DRIVER_LOOP_TIME)
+                            : TaskBaseClass(name, period) {
             printf("%p %s Setup (loop: %lums)\n", this, name, period);
         }
-        bool Loop() { return true; };
+        bool Loop() {  // implement for testing purposes
+            printf("DriverBaseClass\n");
+            return true;
+        }
 };
 
 class DriverTemplate : public Task {
     public:
         DriverTemplate(const char *deviceName=(const char*)"Driver template", unsigned long period=50) : Task(deviceName, period) {
-            
+
         }
         virtual bool Loop() = 0;
 };

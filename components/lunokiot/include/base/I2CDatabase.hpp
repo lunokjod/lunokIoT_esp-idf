@@ -28,12 +28,8 @@ Matrix:
     this->DetectI2CHardware("Local", 25,21); // https://docs.m5stack.com/en/core/atom_matrix
 */
 
-
-
-
-
 // a simple empty declaration
-static const char *i2cDatabase[128] = { nullptr };
+extern const char *i2cDatabase[128];
 // convenient function to fill the database, gcc 10.2.1 dont support designated initializers :(
 void BuildI2CDatabase();
 
