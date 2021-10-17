@@ -26,7 +26,7 @@ using namespace LunokIoT;
 
 class TaskBaseClass {
     public:
-        TaskBaseClass(unsigned long period) : period(period) {
+        TaskBaseClass(const char * const name, unsigned long period) : name(name), period(period) {
             debug_printf("new\n");
         };
         virtual ~TaskBaseClass() {
@@ -34,6 +34,7 @@ class TaskBaseClass {
         }
         virtual bool Loop() = 0; // implement in child, return false must stop the task
     protected:
+        const char * const name;
         unsigned long period;
 };
 

@@ -65,7 +65,7 @@ int ESP32Device::Hall(int argc, char **argv) {
     return 0;
 }
 int ESP32Device::Tasks(int argc, char **argv) {
-    const size_t bytes_per_task = 40; /* see vTaskList description */
+    const size_t bytes_per_task = 24+CONFIG_FREERTOS_MAX_TASK_NAME_LEN; /* see vTaskList description */
     char *task_list_buffer = (char*)malloc(uxTaskGetNumberOfTasks() * bytes_per_task);
     if (task_list_buffer == NULL) {
         printf("failed to allocate buffer for vTaskList output");
@@ -93,7 +93,7 @@ int ESP32Device::Tasks(int argc, char **argv) {
 // https://docs.espressif.com/projects/esp-idf/en/v4.3.1/esp32/api-reference/system/freertos.html?highlight=taskgetidleruntimecounter#_CPPv427ulTaskGetIdleRunTimeCounterv
 // https://www.freertos.org/a00021.html#vTaskGetRunTimeStats
 int ESP32Device::Scheduler(int argc, char **argv) {
-    const size_t bytes_per_task = 40; /* see vTaskList description */
+    const size_t bytes_per_task = 24+CONFIG_FREERTOS_MAX_TASK_NAME_LEN; /* see vTaskList description */
     char *task_list_buffer = (char*)malloc(uxTaskGetNumberOfTasks() * bytes_per_task);
     if (task_list_buffer == NULL) {
         printf("failed to allocate buffer for vTaskGetRunTimeStats output");
