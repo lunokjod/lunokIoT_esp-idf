@@ -67,9 +67,9 @@ on GPIO36 and GPIO39.
 M5StickCPlusDevice::M5StickCPlusDevice(): ESP32Device((const char*)"(-) M5StickCPlus") {
     printf("%p %s Setup\n", this, this->name);
     //this->_period = 2000;
-    printf("%p %s I2C Hy2.0-4P/GROVE port setup: $> i2cconfig --sda 32 --scl 33 --freq 400000\n", this, this->name);
-    printf("%p %s I2C Internal port setup: $> i2cconfig --sda 21 --scl 22 --freq 400000\n", this, this->name);
-    printf("%p %s I2C Hat port setup: $> i2cconfig --sda 0 --scl 26 --freq 400000\n", this, this->name);
+    printf("%p %s I2C Hy2.0-4P/GROVE port setup: $> i2cconfig --port 1 --sda 32 --scl 33 --freq 400000\n", this, this->name);
+    printf("%p %s I2C Internal port setup: $> i2cconfig --port 1 --sda 21 --scl 22 --freq 400000\n", this, this->name);
+    printf("%p %s I2C Hat port setup: $> i2cconfig --port 1 --sda 0 --scl 26 --freq 400000\n", this, this->name);
     this->button0 = new ButtonDriver(BUTTON0_PIN);
     this->button1 = new ButtonDriver(BUTTON1_PIN);
     // AXP192 is connected to internal i2c
