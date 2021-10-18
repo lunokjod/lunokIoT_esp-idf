@@ -51,8 +51,8 @@ AXP192Driver::AXP192Driver(i2c_port_t i2cport, uint32_t i2cfrequency, gpio_num_t
 
 bool AXP192Driver::Loop() {
     // @NOTE the following code must be ported to some kind of inheritance of Button, and Device must expose it as normal GPIO button
+    printf("Oyah!\n");
 
-/*
     // i2c Step 1, configure:
     i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000
         .mode = I2C_MODE_MASTER,
@@ -68,7 +68,7 @@ bool AXP192Driver::Loop() {
     esp_err_t res = i2c_param_config(I2C_NUM_0, &i2cConf);
     if ( ESP_OK != res ) {
         printf("%s:%d %s() i2c_param_config ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        this->_period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
+        this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
         return true;
     }
 
@@ -76,7 +76,7 @@ bool AXP192Driver::Loop() {
     res = i2c_driver_install(I2C_NUM_0, i2cConf.mode , I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
     if ( ESP_OK != res ) {
         printf("%s:%d %s() i2c_driver_install ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        this->_period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
+        this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
         return true;
     }
 
@@ -87,7 +87,7 @@ bool AXP192Driver::Loop() {
     res = i2c_master_write_read_device(I2C_NUM_0, I2C_ADDR_AXP192, &registerToAsk, 1, &buttonStatus, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        this->_period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
+        this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
         i2c_driver_delete(I2C_NUM_0);
         return true;
     }
@@ -98,7 +98,7 @@ bool AXP192Driver::Loop() {
     res = i2c_master_write_to_device(I2C_NUM_0, I2C_ADDR_AXP192, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         printf("%s:%d %s() i2c_master_write_to_device error: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        this->_period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
+        this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
         i2c_driver_delete(I2C_NUM_0);
         return true;
     }
@@ -125,12 +125,12 @@ bool AXP192Driver::Loop() {
         
         if ( PEK_BUTTON::LONG == lastVal ) {
             printf(" long press event");
-            this->_period = PEK_BUTTON_POOL_TIME; // released, low pooling
+            this->period = PEK_BUTTON_POOL_TIME; // released, low pooling
         } else if ( PEK_BUTTON::SHORT == lastVal ) {
             printf(" click event");
-            this->_period = PEK_BUTTON_POOL_TIME; // released, low pooling
+            this->period = PEK_BUTTON_POOL_TIME; // released, low pooling
         } else {
-            this->_period = PEK_BUTTON_SENSING_TIME; // button pressed, high resolution poll to get accurated time
+            this->period = PEK_BUTTON_SENSING_TIME; // button pressed, high resolution poll to get accurated time
         }
         printf("\n");
         lastEvent = thisEvent;
@@ -142,7 +142,7 @@ bool AXP192Driver::Loop() {
     if ( PEK_BUTTON::LONG == buttonStatus ) { // do you like spagetti?
         if ( warnUserForPowerOff == true ) { // must warn user what are doing? (poweroff in 6 seconds!)
             printf("\n\n /!\\ /!\\ /!\\ WARNING!!! RELEASE the BUTTON before 6 seconds to AVOID POWERDOWN /!\\ /!\\ /!\\ \n\n\n");
-            this->_period = PEK_BUTTON_SENSING_TIME; // button pressed, high resolution poll to get accurated time
+            this->period = PEK_BUTTON_SENSING_TIME; // button pressed, high resolution poll to get accurated time
             fflush(stdout);
             return true;
         }
@@ -152,6 +152,6 @@ bool AXP192Driver::Loop() {
             warnUserForPowerOff = true;
         }
     }
-*/
+
     return true;
 }

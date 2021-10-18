@@ -25,6 +25,7 @@ ButtonDriver::ButtonDriver(gpio_num_t gpio): Driver((const char*)"(-) Button", (
 }
 bool ButtonDriver::Loop() {
     int val = gpio_get_level(this->gpio);
+    //printf("%p %s val: %d old: %d period: %lu\n", this, name, val, lastVal, _period);
     if ( val != lastVal ) {
         printf("%p %s(%d) ", this, this->name, gpio);
         printf("%s ", val?"Released":"Pressed" );
