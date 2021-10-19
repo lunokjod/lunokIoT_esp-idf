@@ -51,7 +51,6 @@ AXP192Driver::AXP192Driver(i2c_port_t i2cport, uint32_t i2cfrequency, gpio_num_t
 
 bool AXP192Driver::Loop() {
     // @NOTE the following code must be ported to some kind of inheritance of Button, and Device must expose it as normal GPIO button
-    printf("Oyah!\n");
 
     // i2c Step 1, configure:
     i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000

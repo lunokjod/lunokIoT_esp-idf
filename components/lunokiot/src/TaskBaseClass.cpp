@@ -31,15 +31,35 @@ using namespace LunokIoT;
 ::SemaphoreHandle_t _TaskBaseClassCounterLock = xSemaphoreCreateMutex();
 static size_t _TaskBaseClassCounter = 0; // task creation counter
 
-
 TaskBaseClass::TaskBaseClass(const char * name, unsigned long period) 
                                 : name(name), period(period) {
+    // mutex for counter
     xSemaphoreTake(_TaskBaseClassCounterLock, portMAX_DELAY);
     _TaskBaseClassCounter++;
     id = _TaskBaseClassCounter;
     xSemaphoreGive(_TaskBaseClassCounterLock);
+
+    this->Lock = xSemaphoreCreateMutex();
+    /*
+    if ( -1 == this->_period ) {
+        printf("%p %s Task don't have loop\n", this, this->name);
+        return;
+    }
+    */
+    //printf("%p %s Task callback every: %lums \n", this, this->name, this->_period);
+    xTaskCreate(
+        &TaskBaseClass::Callback,                    // Function that should be called
+        name,                         // Name of the task (for debugging)
+        2000,                               // Stack size (bytes) @TODO must be set to configMINIMAL_STACK_SIZE
+        this,                               // Parameter to pass
+        tskIDLE_PRIORITY,                   // Task priority
+        &taskHandle                        // Task handle
+    );
+
     debug_printf("new\n");
 };
+
+
 
 TaskBaseClass::~TaskBaseClass() {
     debug_printf("delete\n");

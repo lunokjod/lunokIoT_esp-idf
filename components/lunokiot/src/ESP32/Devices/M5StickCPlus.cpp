@@ -4,6 +4,7 @@
 #include "ESP32/Devices/M5StickCPlus.hpp"
 #include "ESP32/Drivers/Button.hpp"
 #include "ESP32/Drivers/AXP192.hpp"
+#include "ESP32/Drivers/LED.hpp"
 
 #include <freertos/task.h>
 #include <esp_spi_flash.h>
@@ -33,6 +34,7 @@ M5StickCPlusDevice::M5StickCPlusDevice(): ESP32Device((const char*)"(-) M5StickC
 
     // AXP192 is connected to internal i2c, must pass the M5StickCPlus paramethers
     this->axp192 = new AXP192Driver(I2C_PORT, I2C_MASTER_FREQ_HZ, I2C1_SDA, I2C1_SCL);
+    this->led = new LEDDriver();
     printf("%p %s End Setup\n", this, name);
 
 }

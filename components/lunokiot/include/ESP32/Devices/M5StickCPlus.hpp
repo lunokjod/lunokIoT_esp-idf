@@ -7,6 +7,7 @@
 #include "ESP32.hpp"
 #include "../Drivers/Button.hpp"
 #include "../Drivers/AXP192.hpp"
+#include "../Drivers/LED.hpp"
 
 namespace LunokIoT {
 
@@ -57,6 +58,7 @@ on GPIO36 and GPIO39.
             AXP192Driver * axp192 = nullptr;
             ButtonDriver * button0 = nullptr;
             ButtonDriver * button1 = nullptr;
+            LEDDriver * led = nullptr;
     };
 
 }
