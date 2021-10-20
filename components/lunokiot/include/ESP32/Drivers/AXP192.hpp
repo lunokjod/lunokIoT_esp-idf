@@ -44,17 +44,18 @@ namespace LunokIoT {
                 LDO23_VOLTAGE=(0x28),
                 VBUS_IPSOUT_CHANNEL=(0x30),
                 SHUTDOWN_BATTERY_CHGLED_CONTROL=(0x32),
-                CHARGE_CONTROL_1=(0x33),
                 BATTERY_CHARGE_CONTROL=(0x35),
                 PEK_PARAMETHERS=(0x36),
                 BATTERY_CHARGE_HIGH_TEMP=(0x39),
-                ADC_ENABLE_1=(0x82),
+                
                 ADC_RATE_TS_PIN=(0x84),
                 GPIO0=(0x90),
                 GPIO0_LDOIO0_VOLTAGE=(0x91)
             };*/
             
-            enum REGISTERS {
+            enum I2C_REGISTER {
+                LDO23_VOLTAGE=(0x28),
+                CHARGE_CONTROL_1=(0x33),
                 //IRQ_STATUS_1=(0x44),
                 //IRQ_STATUS_2=(0x45),
                 IRQ_STATUS_3=(0x46), /* bits: [0]=PEK LONG, [1]=PEK SHORT */
@@ -68,7 +69,8 @@ namespace LunokIoT {
                 //BATTERY_VOLTAGE=(0x78),
                 //CHARGE_CURRENT=(0x7a),
                 //DISCHARGE_CURRENT=(0x7c),
-                //APS_VOLTAGE=(0x7e)
+                //APS_VOLTAGE=(0x7e),
+                ADC_ENABLE_1=(0x82)
                     
             };
         public:
@@ -88,6 +90,9 @@ namespace LunokIoT {
             gpio_num_t sda;
             gpio_num_t scl;
             uint8_t address;
+            bool I2CInit();
+            void Init();
+            void I2CDeInit();
     };
 
 }

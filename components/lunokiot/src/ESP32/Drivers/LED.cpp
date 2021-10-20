@@ -53,6 +53,8 @@ LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)2
 }
 //int dutyCycle = 0;
 bool LEDDriver::Loop() {
+    return true; //@TODO debug
+
     int timeDutyCycle = xTaskGetTickCount() % MAX_DUTY_CYCLE;
     //int seconds = xTaskGetTickCount() / (portTICK_RATE_MS * 1000);
     //int timeDutyCycleTest = ((xTaskGetTickCount() * LEDC_FREQUENCY) / (portTICK_RATE_MS * 1000))% MAX_DUTY_CYCLE;
