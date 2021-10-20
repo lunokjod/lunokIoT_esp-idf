@@ -182,7 +182,11 @@ static int do_i2cdetect_cmd(int argc, char **argv) {
         printf("\nList of devices found in i2c (sda: 0x%x, scl: 0x%x, speed: %dHz):\n", i2c_gpio_sda, i2c_gpio_scl, i2c_frequency);
         for(uint8_t current=0;current<128;current++) {
             if ( true == deviceFoundAt[current] ) {
-                printf(" * %s\n", i2cDatabase[current]);
+                if ( nullptr != i2cDatabase[current] ) {
+                    printf(" * %s\n", i2cDatabase[current]);
+                } else {
+                    printf(" * UNKNOWN (0x%x)\n", current);
+                }
             }
         }
         printf("End of i2c device list\n");
@@ -465,6 +469,8 @@ void BuildI2CDatabase() { // database maybe are too for this x'D
     i2cDatabase[I2C_ADDR_BMM150] = "BMM150";
     i2cDatabase[I2C_ADDR_MFRC522] = "MFRC522 (RFID)";
     i2cDatabase[I2C_ADDR_AXP192] = "AXP192 (PMU)"; // M5SickC/CPlus
+    i2cDatabase[I2C_ADDR_OLED_128x32] = "SSD1306 0,91' OLED 128x32";
+    i2cDatabase[I2C_ADDR_OLED_128x64] = "OLED 128x64";
     i2cDatabase[I2C_ADDR_SHT30] = "SHT30";
     i2cDatabase[I2C_ADDR_BM8563] = "BM8563 (RTC)";
     i2cDatabase[I2C_ADDR_SGP30] = "SGP30";

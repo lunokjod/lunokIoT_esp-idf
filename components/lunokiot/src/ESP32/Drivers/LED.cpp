@@ -14,7 +14,7 @@
 #define LEDC_OUTPUT_IO          (10) // Define the output GPIO
 #define LEDC_CHANNEL            LEDC_CHANNEL_0
 #define LEDC_DUTY_RES           LEDC_TIMER_8_BIT
-#define LEDC_FREQUENCY          (100) // Hz
+#define LEDC_FREQUENCY          (5000) // Hz
 #define MAX_DUTY_CYCLE          (int)(pow(2, LEDC_DUTY_RES) - 1)  
 
 using namespace LunokIoT;
@@ -22,7 +22,7 @@ using namespace LunokIoT;
 ledc_timer_config_t ledc_timer = { };
 ledc_channel_config_t ledc_channel = { };
 
-LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)20) {
+LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)23) {
     printf("%p %s Setup \n", this, name);
 
     // Set the LEDC peripheral configuration
@@ -55,9 +55,9 @@ LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)2
 bool LEDDriver::Loop() {
     int timeDutyCycle = xTaskGetTickCount() % MAX_DUTY_CYCLE;
     //int seconds = xTaskGetTickCount() / (portTICK_RATE_MS * 1000);
-    int timeDutyCycleTest = ((xTaskGetTickCount() * LEDC_FREQUENCY) / (portTICK_RATE_MS * 1000))% MAX_DUTY_CYCLE;
-    printf("calcDuty: %d\n", timeDutyCycleTest );
-    ledc_set_duty_and_update(LEDC_MODE, LEDC_CHANNEL, timeDutyCycleTest, 0);
+    //int timeDutyCycleTest = ((xTaskGetTickCount() * LEDC_FREQUENCY) / (portTICK_RATE_MS * 1000))% MAX_DUTY_CYCLE;
+    printf("calcDuty: %d\n", timeDutyCycle );
+    ledc_set_duty_and_update(LEDC_MODE, LEDC_CHANNEL, timeDutyCycle, 0);
     /*
     dutyCycle++;
     if ( dutyCycle > MAX_DUTY_CYCLE ) {
