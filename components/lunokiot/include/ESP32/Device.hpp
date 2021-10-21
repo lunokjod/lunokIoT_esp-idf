@@ -2,7 +2,6 @@
 #define ___LUNOKIOT__ESP32_DEVICE___
 
 #include "LunokIoT.hpp"
-#include "Debug.hpp"
 #include "base/DeviceTemplate.hpp"
 
 namespace LunokIoT {

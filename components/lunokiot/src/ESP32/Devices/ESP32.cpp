@@ -360,9 +360,7 @@ void ESP32Device::RegisterConsoleCommands(void) {
 }
 
 ESP32Device::ESP32Device(const char* devicename): Device(devicename) {
-#ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
-    printf("%p %s Setup\n", this, this->name);
-#endif
+    debug_printf("Setup");
     this->_period = 2000;
     this->console = new ConsoleDriver();
     this->RegisterConsoleCommands();
@@ -370,9 +368,7 @@ ESP32Device::ESP32Device(const char* devicename): Device(devicename) {
     this->i2c = new I2CDriver();
     this->wifi = new WiFiDriver();
     this->ntp = new NTPService();
-#ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
-    printf("%p %s End Setup\n", this, this->name);
-#endif
+    debug_printf("End Setup");
 }
 #define LUNOKIOT_LOG_MARK_TIME_MS 60000
 

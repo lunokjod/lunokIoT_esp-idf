@@ -1,9 +1,16 @@
 #ifndef ____LUNOKIOT___DRIVER_I2C____
 #define ____LUNOKIOT___DRIVER_I2C____
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
+#include <driver/i2c.h>
+
 #include "LunokIoT.hpp"
 #include "../Driver.hpp"
-#include "driver/i2c.h"
+
+
+
 
 namespace LunokIoT {
 
@@ -20,6 +27,14 @@ namespace LunokIoT {
 #define I2C_MASTER_TIMEOUT_MS       500
 
     class I2CDriver : public Driver {
+        private:
+            SemaphoreHandle_t _mutexLock = xSemaphoreCreateMutex();
+        public:
+            //@TODO @FUTURE some kind of hanle must be served, allowing multitasking
+            bool GetI2CSession(i2c_port_t i2cport, uint32_t i2cfrequency, 
+                        gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
+                        uint8_t i2caddress);
+            bool FreeI2CSession(i2c_port_t i2cport);
         public:
             I2CDriver();
             bool Loop();

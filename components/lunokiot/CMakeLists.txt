@@ -43,7 +43,6 @@ list(APPEND srcs "./src/ESP32/Task.cpp" "./src/TaskBaseClass.cpp" "./src/ESP32/D
                 "./src/ESP32/Drivers/NVS.cpp" 
                 "./src/ESP32/Drivers/WiFi.cpp")
 message("---------------------------------------------------------")
-
 if(CONFIG_LUNOKIOT_DEVICE_ESP32)
     list(APPEND srcs "./src/ESP32/Devices/ESP32.cpp")
     message("                                  Device type: ESP32")
@@ -60,6 +59,9 @@ elseif(CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS)
     list(APPEND srcs "./src/ESP32/Drivers/Button.cpp")
     list(APPEND srcs "./src/ESP32/Drivers/AXP192.cpp")
     message("                           Device type: M5StickCPlus")
+endif()
+if(CONFIG_LUNOKIOT_DEBUG)
+    message("DEBUG MODE DEBUG MODE DEBUG MODE DEBUG MODE DEBUG")
 endif()
 message("---------------------------------------------------------
 ")

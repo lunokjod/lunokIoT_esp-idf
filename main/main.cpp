@@ -1,14 +1,19 @@
 #include <iostream>
-#include <LunokIoT.hpp>
+
+#include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#include "LunokIoT.hpp"
+
+
+
 extern "C" void app_main(void) {
-    std::cout << "app_main starting" << std::endl;
+    debug_printf("app_main starting");
     LunokIoT::Begin();
     // app code must be implemented here
     while(true) {
         vTaskDelay(1500 / portTICK_PERIOD_MS);
         //fflush(stdout);
     }
-    std::cout << "app_main done" << std::endl;
+    debug_printf("app_main done (If you see this, must be code problem)");
 }

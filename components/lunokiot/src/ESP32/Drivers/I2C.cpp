@@ -502,3 +502,53 @@ bool I2CDriver::Loop() {
     //printf("%p %s Loop\n", this, this->name);
     return true;
 }
+
+
+
+
+// SemaphoreHandle_t _mutexLock = xSemaphoreCreateMutex();
+bool I2CDriver::GetI2CSession(i2c_port_t i2cport, uint32_t i2cfrequency, 
+                        gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
+                        uint8_t i2caddress) {
+    if ( pdTRUE != xSemaphoreTake(_mutexLock, portMAX_DELAY) ) {
+        printf("%s:%d %s() Mutex ERROR: acquire timeout\n",__FILE__, __LINE__, __func__);
+        return false;
+    }
+    // i2c Step 1, configure:
+    i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = (int)i2csdagpio,
+        .scl_io_num = (int)i2csclgpio,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master {
+            .clk_speed = I2C_MASTER_FREQ_HZ
+        },
+        .clk_flags = 0
+    };
+    esp_err_t res = i2c_param_config(i2cport, &i2cConf);
+    if ( ESP_OK != res ) {
+        printf("%s:%d %s() i2c_param_config ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+        return false;
+    }
+
+    // Step 2, install driver:
+    res = i2c_driver_install(i2cport, i2cConf.mode , I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    if ( ESP_OK != res ) {
+        printf("%s:%d %s() i2c_driver_install ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+        return false;
+    }
+
+    // Step 3, get the data
+    return true;
+}
+bool I2CDriver::FreeI2CSession(i2c_port_t i2cport) {
+    esp_err_t res = i2c_driver_delete(i2cport);
+    if ( ESP_OK != res ) {
+        printf("%s:%d %s() i2c_driver_delete ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+        return false;
+    }
+
+    xSemaphoreGive(_mutexLock);
+    return true;
+}

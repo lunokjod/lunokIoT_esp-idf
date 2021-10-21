@@ -1,5 +1,10 @@
 # https://www.kernel.org/doc/html/latest/kbuild/kconfig-language.html#introduction
 menu "lunokIoT"
+    config LUNOKIOT_DEBUG
+        bool "Enable Serial debug"
+        default y
+        help
+            Enable debug to serial
     choice
         prompt "Device support"
         help

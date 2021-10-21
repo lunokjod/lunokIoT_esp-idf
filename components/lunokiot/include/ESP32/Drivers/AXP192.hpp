@@ -7,6 +7,7 @@
 #include <driver/i2c.h>
 #include "ESP32/Drivers/Button.hpp"
 #include "base/I2CDatabase.hpp"
+#include "ESP32/Drivers/I2C.hpp"
 
 namespace LunokIoT {
 
@@ -37,25 +38,27 @@ namespace LunokIoT {
             // https://github.com/tuupola/axp192/blob/master/axp192.h awesome!
             /*
             enum CONTROL {
-                // Power output control: 6 EXTEN, 4 DCDC2, 3 LDO3, 2 LDO2, 1 DCDC3, 0 DCDC1
-                DCDC13_LDO23=(0x12),
                 DCDC2_VOLTAGE=(0x23),
                 DCDC1_VOLTAGE=(0x26),
                 LDO23_VOLTAGE=(0x28),
-                VBUS_IPSOUT_CHANNEL=(0x30),
-                SHUTDOWN_BATTERY_CHGLED_CONTROL=(0x32),
-                BATTERY_CHARGE_CONTROL=(0x35),
-                PEK_PARAMETHERS=(0x36),
-                BATTERY_CHARGE_HIGH_TEMP=(0x39),
+                
+                
+                
+                
                 
                 ADC_RATE_TS_PIN=(0x84),
-                GPIO0=(0x90),
-                GPIO0_LDOIO0_VOLTAGE=(0x91)
             };*/
             
             enum I2C_REGISTER {
+                // Power output control: 6 EXTEN, 4 DCDC2, 3 LDO3, 2 LDO2, 1 DCDC3, 0 DCDC1
+                DCDC13_LDO23=(0x12),
                 LDO23_VOLTAGE=(0x28),
+                VBUS_IPSOUT_CHANNEL=(0x30),
+                SHUTDOWN_BATTERY_CHGLED_CONTROL=(0x32),
                 CHARGE_CONTROL_1=(0x33),
+                BATTERY_CHARGE_CONTROL=(0x35),
+                PEK_PARAMETHERS=(0x36),
+                BATTERY_CHARGE_HIGH_TEMP=(0x39),
                 //IRQ_STATUS_1=(0x44),
                 //IRQ_STATUS_2=(0x45),
                 IRQ_STATUS_3=(0x46), /* bits: [0]=PEK LONG, [1]=PEK SHORT */
@@ -70,7 +73,9 @@ namespace LunokIoT {
                 //CHARGE_CURRENT=(0x7a),
                 //DISCHARGE_CURRENT=(0x7c),
                 //APS_VOLTAGE=(0x7e),
-                ADC_ENABLE_1=(0x82)
+                ADC_ENABLE_1=(0x82),
+                GPIO0=(0x90),
+                GPIO0_LDOIO0_VOLTAGE=(0x91)
                     
             };
         public:
@@ -79,20 +84,19 @@ namespace LunokIoT {
             TickType_t lastEvent = 0;
             bool warnUserForPowerOff = true;
 
-            AXP192Driver(i2c_port_t i2cport, uint32_t i2cfrequency, 
+            AXP192Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         uint8_t i2caddress=I2C_ADDR_AXP192);
             bool Loop();
 
             // i2c settings
+            I2CDriver *i2cHandler;
             i2c_port_t port;
             uint32_t frequency;
             gpio_num_t sda;
             gpio_num_t scl;
             uint8_t address;
-            bool I2CInit();
             void Init();
-            void I2CDeInit();
     };
 
 }
