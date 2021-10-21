@@ -594,20 +594,18 @@ void register_nvs(void) {
 using namespace LunokIoT;
 
 NVSDriver::NVSDriver(): Driver((const char*)"(-) NVS", (unsigned long)-1) {
-    printf("%p %s Setup\n", this, this->name);
+    debug_printf("Setup");
     esp_err_t nvsResult = nvs_flash_init();
     if ( ESP_OK != nvsResult ) {
-        printf("%p %s ERROR: unable to mount NVS (%s)\n", this, this->name, esp_err_to_name(nvsResult));
-        printf("System halted\n");
-        fflush(stdout);
+        debug_printf("ERROR: unable to mount NVS (%s)", esp_err_to_name(nvsResult));
+        debug_printf("System halted");
         while (true) { vTaskDelay(1000 / portTICK_PERIOD_MS); };
     }
     register_nvs();
-
-    printf("%p %s availiable\n", this, this->name);
+    debug_printf("NVS availiable");
 
 }
 bool NVSDriver::Loop() {
-    printf("%s Driver Loop\n", this->name);
+    debug_printf("Driver Loop");
     return true;
 }

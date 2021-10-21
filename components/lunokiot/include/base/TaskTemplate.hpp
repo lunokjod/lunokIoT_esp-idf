@@ -16,7 +16,7 @@ using namespace LunokIoT;
 class TaskBaseClass {
     public:
         ::SemaphoreHandle_t Lock;
-        TaskBaseClass(const char * name, unsigned long period);
+        TaskBaseClass(const char * name, unsigned long period, const uint32_t stackSize=configMINIMAL_STACK_SIZE);
         virtual ~TaskBaseClass();
         virtual bool Loop() { return false; }; // must return true if you want to be called again
         void Suspend() { vTaskSuspend(taskHandle); }

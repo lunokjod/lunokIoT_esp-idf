@@ -32,7 +32,7 @@ int NTPService::_DateCmd(int argc, char **argv) {
 
 NTPService::NTPService() : Service((const char *)"(-) NTP Service") {
     //Reconfigure task to = (unsigned long)CONFIG_LWIP_SNTP_UPDATE_DELAY
-    printf("%p %s Setup\n", this, this->name);
+    debug_printf("Setup");
     _period = 1000 * 5;
     setenv("TZ", "CST-2", 1);   //Spain mainland
     tzset();
@@ -51,20 +51,20 @@ NTPService::NTPService() : Service((const char *)"(-) NTP Service") {
 
 void time_sync_notification_cb(struct timeval *tv)
 {
-    printf("Notification of a time synchronization event: ");
+    debug_printf("Notification of a time synchronization event: ");
     time_t now = time(NULL);
     struct tm timeinfo;
     localtime_r(&now, &timeinfo);
     char strftime_buf[64];
     strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
-    printf("Time: %s\n", strftime_buf);
+    debug_printf("Time: %s\n", strftime_buf);
 }
 
 bool NTPService::Loop() {
     // silent until online
     bool connected = WiFiDriver::instance->IsOnline();
     if ( connected ) {
-        printf("%p %s Trying to sync with NTP...\n", this, this->name);
+        debug_printf("Trying to sync with NTP...\n");
         sntp_setoperatingmode(SNTP_OPMODE_POLL);
         sntp_setservername(0, "es.pool.ntp.org");
         sntp_set_time_sync_notification_cb(time_sync_notification_cb);

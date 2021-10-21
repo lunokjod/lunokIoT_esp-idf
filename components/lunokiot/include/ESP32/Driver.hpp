@@ -2,7 +2,6 @@
 #define ___LUNOKIOT__ESP32_DRIVER___
 
 #include "LunokIoT.hpp"
-#include "Debug.hpp"
 #include "base/DriverTemplate.hpp"
 
 namespace LunokIoT {

@@ -369,6 +369,9 @@ ESP32Device::ESP32Device(const char* devicename): Device(devicename) {
     this->wifi = new WiFiDriver();
     this->ntp = new NTPService();
     debug_printf("End Setup");
+#ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
+    this->console->EnableConsole();
+#endif // CONFIG_LUNOKIOT_DEVICE_ESP32
 }
 #define LUNOKIOT_LOG_MARK_TIME_MS 60000
 

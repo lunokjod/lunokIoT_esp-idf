@@ -583,7 +583,7 @@ int WiFiDriver::_Disconnect(int argc, char **argv) {
 
 
 WiFiDriver::WiFiDriver(): Driver((const char*)"(-) WiFi", 1000) {
-    printf("%p %s Setup\n", this, this->name);
+    debug_printf("Setup");
     WiFiDriver::instance = this; //@TODO this is UGLY
 
     this->Suspend(); // stops the tasks, no wifi to handle until Init
@@ -659,7 +659,7 @@ bool WiFiDriver::Loop() {
     if ( waitingForReconnect ) {
         float divisor = 10.0;
         float totalSleep = 0.0;
-        printf("WIFI Reconnect in %ds...\n", WIFI_RECONNECT_TIMEOUT_MS/1000);
+        debug_printf("WIFI Reconnect in %ds...\n", WIFI_RECONNECT_TIMEOUT_MS/1000);
         int iterations;
         float stepTimeMs = (WIFI_RECONNECT_TIMEOUT_MS/divisor);
         for(iterations=0;iterations < divisor; iterations++) {
@@ -668,9 +668,9 @@ bool WiFiDriver::Loop() {
             vTaskDelay(stepTimeMs / portTICK_PERIOD_MS);
             if ( false == waitingForReconnect ) { break; }
         }
-        printf("@DEBUG LOOP iterations: %d divisor: %.2f\n", iterations, divisor);
+        //printf("@DEBUG LOOP iterations: %d divisor: %.2f\n", iterations, divisor);
         if ( iterations == divisor ) {
-            printf("@DEBUG LOOP iterations done\n");
+            //printf("@DEBUG LOOP iterations done\n");
             // isn't solved yet?
             if ( waitingForReconnect ) {
                 reconnectRetries=1;
@@ -678,7 +678,7 @@ bool WiFiDriver::Loop() {
                 wifiSTAIsConnected = false;
                 
                 esp_err_t resultSetStation = esp_wifi_set_mode(WIFI_MODE_STA);
-                printf("WIFI Reconnect Started: %s\n", esp_err_to_name(resultSetStation));
+                debug_printf("WIFI Reconnect Started: %s\n", esp_err_to_name(resultSetStation));
                 esp_wifi_start();
                 esp_wifi_connect();
             }

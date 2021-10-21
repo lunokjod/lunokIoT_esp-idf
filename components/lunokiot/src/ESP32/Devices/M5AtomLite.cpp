@@ -1,4 +1,4 @@
-#include <LunokIoT.hpp>
+#include "LunokIoT.hpp"
 #include "ESP32/Device.hpp"
 #include "ESP32/Devices/ESP32.hpp"
 #include "ESP32/Devices/M5AtomLite.hpp"
@@ -32,16 +32,19 @@ on GPIO36 and GPIO39.
 
 
 M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite") {
-    printf("%p %s Setup\n", this, this->name);
+    debug_printf("Setup");
     this->_period = 2000;
 
-    printf("%p %s I2C Hy2.0-4P/GROVE port setup: $> i2cconfig --port 1 --sda 26 --scl 32 --freq 400000\n", this, this->name);
-    printf("%p %s I2C ATOM-MATE port setup: $> i2cconfig --port 1 --sda 19 --scl 22 --freq 400000\n", this, this->name);
+    debug_printf("I2C Hy2.0-4P/GROVE port setup: $> i2cconfig --port 1 --sda 26 --scl 32 --freq 400000";
+    debug_printf("I2C ATOM-MATE port setup: $> i2cconfig --port 1 --sda 19 --scl 22 --freq 400000");
 
     this->sk6812 = new SK6812Driver(SK6812_PIN);
     this->button = new ButtonDriver(BUTTON_PIN);
 
-    printf("%p %s End Setup\n", this, this->name);
+    debug_printf("End Setup");
+#ifdef CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE
+    this->console->EnableConsole();
+#endif // CONFIG_LUNOKIOT_DEVICE_M5STACK_ATOM_LITE
 
 }
 #define LUNOKIOT_LOG_MARK_TIME_MS 60000

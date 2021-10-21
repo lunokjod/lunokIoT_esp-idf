@@ -7,10 +7,9 @@
 #include <argtable3/argtable3.h>
 #include <unistd.h>
 #include <string.h>
-
-#include "esp_system.h"
-#include "esp_log.h"
-#include "driver/uart.h"
+#include <esp_system.h>
+#include <esp_log.h>
+#include <driver/uart.h>
 
 
 using namespace LunokIoT;
@@ -21,8 +20,7 @@ int ConsoleDriver::Clear(int argc, char **argv) {
 }
 
 ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned long)-1) {
-    printf("%p %s Setup\n", this, this->name);
-
+    debug_printf("%s Setup", name);
     /*
     // Initialize the console 
     esp_console_config_t console_config = ESP_CONSOLE_CONFIG_DEFAULT();
@@ -34,9 +32,9 @@ ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned lon
     };
     //ESP_ERROR_CHECK( esp_console_init(&console_config));*/
 
-    esp_console_repl_t *repl = NULL;
-    esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
-    esp_console_dev_uart_config_t uart_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+    repl = NULL;
+    repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+    uart_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
     /* Prompt to be printed before each line.
      * This can be customized, made dynamic, etc.
      */
@@ -60,7 +58,6 @@ ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned lon
 
     esp_console_new_repl_uart(&uart_config, &repl_config, &repl);
 
-    esp_console_start_repl(repl);
 
     /* Set command history size */
     linenoiseHistorySetMaxLen(20);
@@ -68,8 +65,12 @@ ConsoleDriver::ConsoleDriver(): Driver((const char*)"(-) Console", (unsigned lon
     /* Set command maximum length */
     //linenoiseSetMaxLineLen(1024);
     linenoiseSetMultiLine(1);
+
 }
 
+void ConsoleDriver::EnableConsole() {
+    esp_console_start_repl(repl);
+}
 bool ConsoleDriver::Loop() {
     //printf("%p %s Loop\n", this, this->name);
     return true;

@@ -36,7 +36,10 @@ M5StickCPlusDevice::M5StickCPlusDevice(): ESP32Device((const char*)"(-) M5StickC
     // AXP192 is connected to internal i2c, must pass the M5StickCPlus paramethers
     this->axp192 = new AXP192Driver(this->i2c, I2C_PORT, I2C_MASTER_FREQ_HZ, I2C1_SDA, I2C1_SCL);
     this->led = new LEDDriver();
-    debug_printf("End Setup\n");
+    debug_printf("End Setup");
+#ifdef CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS
+    this->console->EnableConsole();
+#endif // CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS
 
 }
 

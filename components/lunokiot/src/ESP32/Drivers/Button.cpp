@@ -20,7 +20,7 @@ using namespace LunokIoT;
 
 // https://github.com/UncleRus/esp-idf-lib/tree/master/examples/button/main
 ButtonDriver::ButtonDriver(gpio_num_t gpio): Driver((const char*)"(-) Button", (unsigned long)100), gpio(gpio) {
-    printf("%p %s Setup (gpio: %d)\n", this, name, gpio);
+    debug_printf("%p %s Setup (gpio: %d)", this, name, gpio);
     gpio_set_direction(this->gpio, GPIO_MODE_INPUT);
 }
 bool ButtonDriver::Loop() {

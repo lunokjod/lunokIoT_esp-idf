@@ -19,7 +19,7 @@ using namespace LunokIoT;
 ::SemaphoreHandle_t _TaskBaseClassCounterLock = xSemaphoreCreateMutex();
 static size_t _TaskBaseClassCounter = 0; // task creation counter
 
-TaskBaseClass::TaskBaseClass(const char * name, unsigned long period) 
+TaskBaseClass::TaskBaseClass(const char * name, unsigned long period, const uint32_t stackSize) 
                                 : name(name), period(period) {
     // mutex for counter
     xSemaphoreTake(_TaskBaseClassCounterLock, portMAX_DELAY);
@@ -38,17 +38,17 @@ TaskBaseClass::TaskBaseClass(const char * name, unsigned long period)
     xTaskCreate(
         &TaskBaseClass::Callback,                    // Function that should be called
         name,                         // Name of the task (for debugging)
-        2000,                               // Stack size (bytes) @TODO must be set to configMINIMAL_STACK_SIZE
+        stackSize,                               // Stack size (bytes) @TODO must be set to configMINIMAL_STACK_SIZE
         this,                               // Parameter to pass
         tskIDLE_PRIORITY,                   // Task priority
         &taskHandle                        // Task handle
     );
 
-    debug_printf("new\n");
+    debug_printf("new");
 };
 
 
 
 TaskBaseClass::~TaskBaseClass() {
-    debug_printf("delete\n");
+    debug_printf("delete");
 }

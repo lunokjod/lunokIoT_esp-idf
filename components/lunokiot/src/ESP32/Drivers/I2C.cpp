@@ -481,7 +481,7 @@ void BuildI2CDatabase() { // database maybe are too for this x'D
 using namespace LunokIoT;
 
 I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", -1) {
-    printf("%p %s Setup\n", this, this->name);
+    debug_printf("Setup");
     /*
     const esp_console_cmd_t cmdInit = {
         .command = "wifi_init",

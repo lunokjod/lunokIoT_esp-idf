@@ -15,11 +15,11 @@ using namespace LunokIoT;
 class DriverBaseClass : public TaskBaseClass {
     public:
         DriverBaseClass(const char *name=(const char*)"NOTSET_DEVICE", unsigned long period=CONFIG_DEFAULT_LUNOKIOT_DRIVER_LOOP_TIME)
-                            : TaskBaseClass(name, period) {
-            printf("%p %s Setup (loop: %lums)\n", this, name, period);
+                            : TaskBaseClass(name, period, 6000) {
+            //debug_printf("Setup (loop: %lums)", period);
         }
         bool Loop() {  // implement for testing purposes
-            printf("DriverBaseClass\n");
+            //debug_printf("DriverBaseClass");
             return true;
         }
 };

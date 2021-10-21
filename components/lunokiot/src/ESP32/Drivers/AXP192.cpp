@@ -30,11 +30,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::LDO23_VOLTAGE, 0xcc };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Set LDO2 & LDO3 voltage to 3.0v (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Set LDO2 & LDO3 voltage to 3.0v (0x%x)", write_buf[1]);
     }
 
     {
@@ -43,11 +43,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::ADC_ENABLE_1, 0xff };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s All ADC enabled (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("All ADC enabled (0x%x)", write_buf[1]);
     }
     
     {
@@ -61,11 +61,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::CHARGE_CONTROL_1, 0xc0 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Bat charge voltage set to 4.2V 100mA (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Bat charge voltage set to 4.2V 100mA (0x%x)", write_buf[1]);
     }
     
     {
@@ -74,11 +74,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::ADC_ENABLE_1, 0xff };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Enable Bat,ACIN,VBUS,APS adc (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Enable Bat,ACIN,VBUS,APS adc (0x%x)", write_buf[1]);
     }
 
     {
@@ -87,11 +87,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::DCDC13_LDO23, 0x4D };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Enable Ext, LDO2, LDO3, DCDC1 (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Enable Ext, LDO2, LDO3, DCDC1 (0x%x)", write_buf[1]);
     }
 
     {
@@ -100,11 +100,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::PEK_PARAMETHERS, 0x0C };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s PEK 128ms power on, 4s power off (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("PEK 128ms power on, 4s power off (0x%x)", write_buf[1]);
     }
 
     {
@@ -113,11 +113,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::GPIO0_LDOIO0_VOLTAGE, 0xF0 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Set RTC voltage to 3.3V (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Set RTC voltage to 3.3V (0x%x)", write_buf[1]);
     }
 
     {
@@ -126,11 +126,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::GPIO0, 0x02 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Set GPIO0 to LDO (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Set GPIO0 to LDO (0x%x)", write_buf[1]);
     }
 
     {
@@ -139,11 +139,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::VBUS_IPSOUT_CHANNEL, 0x80 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Disable vbus hold limit (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Disable vbus hold limit (0x%x)", write_buf[1]);
     }
 
     {
@@ -152,11 +152,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::BATTERY_CHARGE_HIGH_TEMP, 0xfc };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Set temperature protection (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Set temperature protection (0x%x)", write_buf[1]);
     }
 
     {
@@ -165,11 +165,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::BATTERY_CHARGE_CONTROL, 0xa2 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Enable RTC BAT charge (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Enable RTC BAT charge (0x%x)", write_buf[1]);
     }
 
 
@@ -179,11 +179,11 @@ void AXP192Driver::Init() {
         const uint8_t write_buf[2] = { I2C_REGISTER::SHUTDOWN_BATTERY_CHGLED_CONTROL, 0x46 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
-            printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
+            debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        printf("%p %s Enable batt detection (0x%x) \n", this, name, write_buf[1]);
+        debug_printf("Enable batt detection (0x%x)", write_buf[1]);
     }
 
     /*
@@ -195,7 +195,7 @@ void AXP192Driver::Init() {
 AXP192Driver::AXP192Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i2cfrequency, gpio_num_t i2csdagpio, gpio_num_t i2csclgpio, uint8_t i2caddress): 
                                        DriverBaseClass((const char*)"(-) AXP192", (unsigned long)PEK_BUTTON_POOL_TIME), 
                                         i2cHandler(i2cHandler), port(i2cport), frequency(i2cfrequency), sda(i2csdagpio), scl(i2csclgpio), address(i2caddress) {
-    printf("%p %s Setup (i2c port: %d, sda=%d scl=%d, addr:%d)\n", this, name, port, sda, scl, address);
+    debug_printf("Setup (i2c port: %d, sda=%d scl=%d, addr:%d)", port, sda, scl, address);
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html
     
     this->Init();
@@ -227,12 +227,12 @@ AXP192Driver::AXP192Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
     // i2c Step 1, configure:
 
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
-    printf("%p (-) Button Setup (i2c reg=0x%x bitmask=0x%x)\n", this, I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
+    debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
 }
 
 bool AXP192Driver::Loop() {
     // @NOTE the following code must be ported to some kind of inheritance of Button, and Device must expose it as normal GPIO button
-
+/*
     // i2c Step 1, configure:
     i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000
         .mode = I2C_MODE_MASTER,
@@ -259,12 +259,17 @@ bool AXP192Driver::Loop() {
         this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
         return true;
     }
+*/
 
+    bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
+    if ( true != works ) {
+        return true; // try again next time
+    }
     // Step 3, get the data
     uint8_t buttonStatus = 0;
     const uint8_t registerToAsk = I2C_REGISTER::IRQ_STATUS_3;
 
-    res = i2c_master_write_read_device(I2C_NUM_0, I2C_ADDR_AXP192, &registerToAsk, 1, &buttonStatus, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
+    esp_err_t res = i2c_master_write_read_device(I2C_NUM_0, I2C_ADDR_AXP192, &registerToAsk, 1, &buttonStatus, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
         this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
@@ -283,7 +288,8 @@ bool AXP192Driver::Loop() {
         return true;
     }
     //}
-    i2c_driver_delete(I2C_NUM_0);
+    //i2c_driver_delete(I2C_NUM_0);
+    i2cHandler->FreeI2CSession(port);
 
 
     // logic button goes here:

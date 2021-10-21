@@ -23,7 +23,7 @@ ledc_timer_config_t ledc_timer = { };
 ledc_channel_config_t ledc_channel = { };
 
 LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)23) {
-    printf("%p %s Setup \n", this, name);
+    debug_printf("Setup");
 
     // Set the LEDC peripheral configuration
 
