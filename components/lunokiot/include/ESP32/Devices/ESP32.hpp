@@ -8,6 +8,7 @@
 #include "../Drivers/Console.hpp"
 #include "../Drivers/WiFi.hpp"
 #include "../Services/NTPService.hpp"
+#include "../Services/HTTPService.hpp"
 #include "../Drivers/I2C.hpp"
 
 namespace LunokIoT {
@@ -31,6 +32,7 @@ namespace LunokIoT {
             WiFiDriver * wifi = nullptr;
             I2CDriver  * i2c = nullptr;
             NTPService * ntp = nullptr;
+            HTTPService * http = nullptr;
     };
 
 }

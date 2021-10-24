@@ -2,11 +2,11 @@
 #define ___LUNOKIOT__ESP32_SERVICE___NTP___
 
 #include "LunokIoT.hpp"
-#include "../Service.hpp"
+#include "base/ServiceTemplate.hpp"
 
 namespace LunokIoT {
 
-    class NTPService : public Service {
+    class NTPService : public ServiceTemplate {
         public:
             NTPService();
             bool Loop();

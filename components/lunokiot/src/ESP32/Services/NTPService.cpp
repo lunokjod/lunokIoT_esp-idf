@@ -30,10 +30,11 @@ int NTPService::_DateCmd(int argc, char **argv) {
     return 0;
 }
 
-NTPService::NTPService() : Service((const char *)"(-) NTP Service") {
+NTPService::NTPService() : ServiceTemplate(((const char *)"(-) NTP Service"), 5000, 2000) {
+
+//, unsigned long period=60000, uint32_t stackSize= configMINIMAL_STACK_SIZE)
     //Reconfigure task to = (unsigned long)CONFIG_LWIP_SNTP_UPDATE_DELAY
     debug_printf("Setup");
-    _period = 1000 * 5;
     setenv("TZ", "CST-2", 1);   //Spain mainland
     tzset();
 
@@ -64,7 +65,7 @@ bool NTPService::Loop() {
     // silent until online
     bool connected = WiFiDriver::instance->IsOnline();
     if ( connected ) {
-        debug_printf("Trying to sync with NTP...\n");
+        debug_printf("Trying to sync with NTP...");
         sntp_setoperatingmode(SNTP_OPMODE_POLL);
         sntp_setservername(0, "es.pool.ntp.org");
         sntp_set_time_sync_notification_cb(time_sync_notification_cb);

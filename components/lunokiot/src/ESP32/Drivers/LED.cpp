@@ -1,13 +1,18 @@
+#include <stdio.h>
+#include <cmath>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
+#include <driver/ledc.h>
+#include <esp_err.h>
 #include <hal/gpio_types.h> // ESP32 gpio
 
 #include "LunokIoT.hpp"
 #include "ESP32/Driver.hpp"
 #include "ESP32/Drivers/LED.hpp"
 
-#include <stdio.h>
-#include "driver/ledc.h"
-#include "esp_err.h"
-#include <cmath>
+
 
 #define LEDC_TIMER              LEDC_TIMER_0
 #define LEDC_MODE               LEDC_LOW_SPEED_MODE
@@ -17,10 +22,12 @@
 #define LEDC_FREQUENCY          (5000) // Hz
 #define MAX_DUTY_CYCLE          (int)(pow(2, LEDC_DUTY_RES) - 1)  
 
+
 using namespace LunokIoT;
 
 ledc_timer_config_t ledc_timer = { };
 ledc_channel_config_t ledc_channel = { };
+
 
 LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)23) {
     debug_printf("Setup");
@@ -38,7 +45,6 @@ LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)2
     ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
     // Prepare and then apply the LEDC PWM channel configuration
-    
     ledc_channel.speed_mode     = LEDC_MODE;
     ledc_channel.channel        = LEDC_CHANNEL;
     ledc_channel.timer_sel      = LEDC_TIMER;
@@ -46,10 +52,9 @@ LEDDriver::LEDDriver(): DriverBaseClass((const char*)"(-) LED", (unsigned long)2
     ledc_channel.gpio_num       = LEDC_OUTPUT_IO;
     ledc_channel.duty           = 0; // Set duty to 0%
     ledc_channel.hpoint         = 0;
+
     ledc_channel_config(&ledc_channel);
     ledc_fade_func_install(0);
-    
-    
 }
 //int dutyCycle = 0;
 bool LEDDriver::Loop() {

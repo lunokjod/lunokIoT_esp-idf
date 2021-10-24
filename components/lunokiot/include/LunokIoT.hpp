@@ -21,14 +21,25 @@ namespace LunokIoT {
 
 extern SemaphoreHandle_t _debugMutex;
 #define debug_write(...) printf(__VA_ARGS__);
-
 //#define debug_headerC() debug_write("C   %08u %s:%d %s() ",xTaskGetTickCount(),__FILE__, __LINE__, __func__);
 //#define debug_headerCPP() debug_write("%08u %s:%d %s ", xTaskGetTickCount(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
-#define debug_header() debug_write("%s%08u %s:%d%s > ", TERM_FG_GREY, xTaskGetTickCount(), __FILENAMEONLY__, __LINE__, TERM_RESET);
-//        debug_headerC();
+#define debug_header() debug_write("%08u %s:%d > ", xTaskGetTickCount(), __FILENAMEONLY__, __LINE__);
+#define debug_printferror(...) { \
+    if ( pdTRUE == xSemaphoreTake(_debugMutex, portMAX_DELAY) ) { \
+        debug_write("%s", TERM_FG_RED); \
+        debug_header(); \
+        debug_write(__VA_ARGS__); \
+        debug_write("%s", TERM_RESET); \
+        debug_write("\n"); \
+        fflush(stdout); \
+        xSemaphoreGive(_debugMutex); \
+    } \
+}
 #define debug_printf(...) { \
     if ( pdTRUE == xSemaphoreTake(_debugMutex, portMAX_DELAY) ) { \
+        debug_write("%s", TERM_FG_GREY); \
         debug_header(); \
+        debug_write("%s", TERM_RESET); \
         debug_write(__VA_ARGS__); \
         debug_write("\n"); \
         fflush(stdout); \
@@ -38,6 +49,7 @@ extern SemaphoreHandle_t _debugMutex;
 #else
 #define debug_write(...)
 #define debug_printf(...)
+#define debug_printferror(...)
 #endif //CONFIG_LUNOKIOT_DEBUG
 
 namespace LunokIoT {

@@ -368,6 +368,7 @@ ESP32Device::ESP32Device(const char* devicename): Device(devicename) {
     this->i2c = new I2CDriver();
     this->wifi = new WiFiDriver();
     this->ntp = new NTPService();
+    this->http = new HTTPService();
     debug_printf("End Setup");
 #ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
     this->console->EnableConsole();

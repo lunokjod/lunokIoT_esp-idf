@@ -24,30 +24,34 @@ void AXP192Driver::Init() {
         /* Write1Byte(0x28, 0xcc); */
 
         // 0xcc = 11001100
-        // LDO2 upper 4 bits (nibble) to 1100 = 12 = 1200mV + start 1800mV  = 3V
+        // LDO2 upper 4 bits (nibble) to 1100 = 12 = 1200mV + initial 1800mV  = 3V
         // LDO3 lower 4 bits (nibble) to 1100
         // 1.8‐3.3V，100mV/step
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::LDO23_VOLTAGE, 0xcc);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::LDO23_VOLTAGE, 0xcc };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Set LDO2 & LDO3 voltage to 3.0v (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Set LDO2 & LDO3 voltage to 3.0V");
     }
 
     {
         // Set ADC to All Enable
         /* Write1Byte(0x82, 0xff); */
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::ADC_ENABLE_1, 0xff);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::ADC_ENABLE_1, 0xff };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("All ADC enabled (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("All ADC enabled");
     }
     
     {
@@ -58,97 +62,112 @@ void AXP192Driver::Init() {
         // bits 6~5 = Charging target voltage 00:4.1V； 01:4.15V； 10:4.2V； 11:4.36V Default 10 
         // bit    4 = Charge finished current 0: when charging current is less than 10% set value, finish charging 1: when charging current is less than 15% set value, finish charging Default 0
         // bits 3~0 = Internal charging current from 100mA to 1320mA
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::CHARGE_CONTROL_1, 0xc0);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::CHARGE_CONTROL_1, 0xc0 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Bat charge voltage set to 4.2V 100mA (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Bat charge voltage set to 4.2V 100mA");
     }
     
     {
         // Enable Bat,ACIN,VBUS,APS adc
         /* Write1Byte(0x82, 0xff); */
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::ADC_ENABLE_1, 0xff);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::ADC_ENABLE_1, 0xff };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Enable Bat,ACIN,VBUS,APS adc (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Enable Bat,ACIN,VBUS,APS adc");
     }
 
     {
         // Enable Ext, LDO2, LDO3, DCDC1
     	/* Write1Byte(0x12, Read8bit(0x12) | 0x4D);	*/
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::DCDC13_LDO23, 0x4D);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::DCDC13_LDO23, 0x4D };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Enable Ext, LDO2, LDO3, DCDC1 (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Enable Ext, LDO2, LDO3, DCDC1");
     }
 
     {
         // 128ms power on, 4s power off
         /* Write1Byte(0x36, 0x0C); */
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::PEK_PARAMETHERS, 0x0C);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::PEK_PARAMETHERS, 0x0C };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("PEK 128ms power on, 4s power off (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("PEK 128ms power on, 4s power off");
     }
 
     {
         // Set RTC voltage to 3.3V
         /* Write1Byte(0x91, 0xF0);	*/
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::GPIO0_LDOIO0_VOLTAGE, 0xF0);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::GPIO0_LDOIO0_VOLTAGE, 0xF0 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Set RTC voltage to 3.3V (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Set RTC voltage to 3.3V");
     }
 
     {
         // Set GPIO0 to LDO
         /* Write1Byte(0x90, 0x02); */
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::GPIO0, 0x02);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::GPIO0, 0x02 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Set GPIO0 to LDO (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Set GPIO0 to LDO");
     }
 
     {
         // Disable vbus hold limit
         /* Write1Byte(0x30, 0x80); */
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::VBUS_IPSOUT_CHANNEL, 0x80);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::VBUS_IPSOUT_CHANNEL, 0x80 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Disable vbus hold limit (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Disable vbus hold limit");
     }
 
     {
         // Set temperature protection
         /* Write1Byte(0x39, 0xfc); */
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::BATTERY_CHARGE_HIGH_TEMP, 0xfc };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
@@ -156,34 +175,41 @@ void AXP192Driver::Init() {
             i2cHandler->FreeI2CSession(port);
             return;
         }
-        debug_printf("Set temperature protection (0x%x)", write_buf[1]);
+        */
+       i2cHandler->SetI2CChar(port, address, I2C_REGISTER::BATTERY_CHARGE_HIGH_TEMP, 0xfc);
+       debug_printf("Set temperature protection");
+        //debug_printf("Set temperature protection (0x%x)", write_buf[1]);
     }
 
     {
         // Enable RTC BAT charge 
         /* Write1Byte(0x35, 0xa2); */
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::BATTERY_CHARGE_CONTROL, 0xa2);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::BATTERY_CHARGE_CONTROL, 0xa2 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Enable RTC BAT charge (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Enable RTC BAT charge");
     }
 
 
     {
         // Enable bat detection
         /* Write1Byte(0x32, 0x46); */
+        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::SHUTDOWN_BATTERY_CHGLED_CONTROL, 0x46);
+        /*
         const uint8_t write_buf[2] = { I2C_REGISTER::SHUTDOWN_BATTERY_CHGLED_CONTROL, 0x46 };
         esp_err_t res = i2c_master_write_to_device(port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
         if ( ESP_OK != res ) {
             debug_printf("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
             i2cHandler->FreeI2CSession(port);
             return;
-        }
-        debug_printf("Enable batt detection (0x%x)", write_buf[1]);
+        }*/
+        debug_printf("Enable batt detection");
     }
 
     /*

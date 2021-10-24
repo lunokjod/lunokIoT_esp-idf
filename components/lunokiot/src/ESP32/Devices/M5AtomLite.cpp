@@ -35,7 +35,7 @@ M5AtomLiteDevice::M5AtomLiteDevice(): ESP32Device((const char*)"(-) M5AtomLite")
     debug_printf("Setup");
     this->_period = 2000;
 
-    debug_printf("I2C Hy2.0-4P/GROVE port setup: $> i2cconfig --port 1 --sda 26 --scl 32 --freq 400000";
+    debug_printf("I2C Hy2.0-4P/GROVE port setup: $> i2cconfig --port 1 --sda 26 --scl 32 --freq 400000");
     debug_printf("I2C ATOM-MATE port setup: $> i2cconfig --port 1 --sda 19 --scl 22 --freq 400000");
 
     this->sk6812 = new SK6812Driver(SK6812_PIN);

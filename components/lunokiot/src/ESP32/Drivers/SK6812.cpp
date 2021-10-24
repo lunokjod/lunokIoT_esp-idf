@@ -91,7 +91,7 @@ int SK6812Driver::_SetColorCmd(int argc, char **argv) {
 }
 
 SK6812Driver::SK6812Driver(gpio_num_t gpio): Driver((const char*)"(-) SK6812", (unsigned long)1000), gpio(gpio) {
-    printf("%p %s Setup\n", this, this->name);
+    debug_printf("Setup");
     sk6812Instance = this;
 
 //void led_strip_install() {
@@ -129,7 +129,6 @@ SK6812Driver::SK6812Driver(gpio_num_t gpio): Driver((const char*)"(-) SK6812", (
     };
     esp_console_cmd_register(&argSetColorCmd);
     this->SetLedColor(0x010101);
-    printf("%p %s availiable\n", this, this->name);
 }
 bool SK6812Driver::Loop() {
     //printf("%s Driver Loop\n", this->name);
