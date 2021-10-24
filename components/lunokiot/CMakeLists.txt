@@ -38,6 +38,7 @@ lunokIoT is here!
 list(APPEND srcs "./src/ESP32/Task.cpp" "./src/TaskBaseClass.cpp" "./src/ESP32/Device.cpp" 
                 "./src/ESP32/Driver.cpp" "./src/ESP32/Service.cpp" 
                 "./src/ESP32/Services/NTPService.cpp" 
+                "./src/ESP32/Services/HTTPService.cpp" 
                 "./src/ESP32/Drivers/Console.cpp" 
                 "./src/ESP32/Drivers/I2C.cpp" 
                 "./src/ESP32/Drivers/NVS.cpp" 
@@ -68,5 +69,5 @@ message("---------------------------------------------------------
 idf_component_register(SRCS "${srcs}"
                        INCLUDE_DIRS "./include"
                     REQUIRES "freertos" "esp32" "esp_common" "driver"
-                    "esp_system" "esp_wifi" "console" "nvs_flash")
+                    "esp_system" "esp_wifi" "console" "nvs_flash" "esp_http_server")
 
