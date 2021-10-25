@@ -5,10 +5,14 @@
 extern "C" {
 #endif
 
+
 // all know device addresses (and some kind of contract to develop those i2c drivers)
 #define I2C_ADDR_BMM150 0x10
+#define I2C_ADDR_BMA423 0x19
+#define I2C_ADDR_AXP202 0x35
 #define I2C_ADDR_MFRC522 0x28
 #define I2C_ADDR_AXP192 0x34
+#define I2C_ADDR_FT6336 0x38
 #define I2C_ADDR_OLED_128x32 0x3C
 #define I2C_ADDR_OLED_128x64 0x3D
 #define I2C_ADDR_SHT30 0x44

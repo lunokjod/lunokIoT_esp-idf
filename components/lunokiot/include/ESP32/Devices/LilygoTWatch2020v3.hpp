@@ -1,0 +1,23 @@
+#ifndef __LUNOKIOT__M5ATOMLITE___
+#define __LUNOKIOT__M5ATOMLITE___
+
+
+#include "LunokIoT.hpp"
+#include "../Device.hpp"
+#include "ESP32.hpp"
+//#include "../Drivers/SK6812.hpp"
+#include "../Drivers/Button.hpp"
+
+namespace LunokIoT {
+//@TODO https://stackoverflow.com/questions/11711920/how-to-implement-multithread-safe-singleton-in-c11-without-using-mutex
+    class LilygoTWatch2020v3Device : public ESP32Device {
+        public:
+            LilygoTWatch2020v3Device();
+            //bool Loop();
+            //SK6812Driver * sk6812 = nullptr;
+            ButtonDriver * button = nullptr;
+    };
+
+}
+
+#endif // __LUNOKIOT__M5ATOMLITE___

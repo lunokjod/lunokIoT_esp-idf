@@ -371,6 +371,7 @@ ESP32Device::ESP32Device(const char* devicename): Device(devicename) {
     this->http = new HTTPService();
     debug_printf("End Setup");
 #ifdef CONFIG_LUNOKIOT_DEVICE_ESP32
+    debug_printf("I2C default port setup: $> i2cconfig --port 1 --sda 21 --scl 22 --freq 400000");
     this->console->EnableConsole();
 #endif // CONFIG_LUNOKIOT_DEVICE_ESP32
 }

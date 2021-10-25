@@ -50,6 +50,10 @@ static gpio_num_t i2c_gpio_scl = gpio_num_t(32);
 static gpio_num_t i2c_gpio_sda = gpio_num_t(0);
 static gpio_num_t i2c_gpio_scl = gpio_num_t(26);
 #endif // CONFIG_LUNOKIOT_DEVICE_M5STACK_STICK_C_PLUS
+#ifdef CONFIG_LUNOKIOT_DEVICE_LILYGO_TWATCH_2020_V3
+static gpio_num_t i2c_gpio_sda = gpio_num_t(21);
+static gpio_num_t i2c_gpio_scl = gpio_num_t(22);
+#endif // CONFIG_LUNOKIOT_DEVICE_LILYGO_TWATCH_2020_V3
 
 static uint32_t i2c_frequency = I2C_MASTER_FREQ_HZ;
 i2c_port_t i2c_port = I2C_DEFAULT_PORT; // defaults to 1, 0 is used by drivers
@@ -466,9 +470,13 @@ void register_i2ctools(void)
 // https://static-cdn.m5stack.com/image/m5-docs_table/I2C_Address.pdf
 
 void BuildI2CDatabase() { // database maybe are too for this x'D
+
     i2cDatabase[I2C_ADDR_BMM150] = "BMM150";
+    i2cDatabase[I2C_ADDR_BMA423] = "BMA423 (MEMS)";
+    i2cDatabase[I2C_ADDR_AXP202] = "AXP202 (PMU)"; // lilygo
     i2cDatabase[I2C_ADDR_MFRC522] = "MFRC522 (RFID)";
     i2cDatabase[I2C_ADDR_AXP192] = "AXP192 (PMU)"; // M5SickC/CPlus
+    i2cDatabase[I2C_ADDR_FT6336] = "FT6336 (Touch)"; // lilygo
     i2cDatabase[I2C_ADDR_OLED_128x32] = "SSD1306 0,91' OLED 128x32";
     i2cDatabase[I2C_ADDR_OLED_128x64] = "OLED 128x64";
     i2cDatabase[I2C_ADDR_SHT30] = "SHT30";

@@ -22,5 +22,9 @@ menu "lunokIoT"
             bool "M5StickC Plus"
             help
                 Enable support for M5Stack Stick C Plus
+        config LUNOKIOT_DEVICE_LILYGO_TWATCH_2020_V3
+            bool "LilyGo T-Watch 2020 v3"
+            help
+                Enable support for LilyGo T-Watch 2020 v3
     endchoice
 endmenu
