@@ -472,7 +472,7 @@ void register_i2ctools(void)
 void BuildI2CDatabase() { // database maybe are too for this x'D
 
     i2cDatabase[I2C_ADDR_BMM150] = "BMM150";
-    i2cDatabase[I2C_ADDR_BMA423] = "BMA423 (MEMS)";
+    i2cDatabase[I2C_ADDR_BMA423] = "BMA423 (MEMS) alt. addr.";
     i2cDatabase[I2C_ADDR_AXP202] = "AXP202 (PMU)"; // lilygo
     i2cDatabase[I2C_ADDR_MFRC522] = "MFRC522 (RFID)";
     i2cDatabase[I2C_ADDR_AXP192] = "AXP192 (PMU)"; // M5SickC/CPlus

@@ -17,7 +17,8 @@
 using namespace LunokIoT;
 // https://github.com/tuupola/axp202/blob/master/axp202.h
 #define IR_PIN	gpio_num_t(13)
-#define BUTTON_PIN	gpio_num_t(39) // @TODO SET!!
+//@NOTE button is AXP202 PEK
+
 //@NOTE WARNING https://docs.espressif.com/projects/esp-idf/en/v4.3.1/esp32/api-reference/peripherals/gpio.html?highlight=gpio#_CPPv416gpio_intr_enable10gpio_num_t
 /* 
 Please do not use the interrupt of GPIO36 and GPIO39 when using ADC or Wi-Fi with 
@@ -28,6 +29,7 @@ This will result in higher power consumption (by ~1mA), but will remove the glit
 on GPIO36 and GPIO39.
 */
 
+// https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/docs/watch_2020_v3.md
 
 LilygoTWatch2020v3Device::LilygoTWatch2020v3Device(): ESP32Device((const char*)"(-) LilygoTWatch2020v3Device") {
     debug_printf("Setup");
