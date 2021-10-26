@@ -30,7 +30,7 @@ namespace LunokIoT {
                 RELEASED=0,
                 LONG=1,
                 SHORT=2,
-                MASK=3
+                IRQMASK=3
             };
             // https://github.com/m5stack/M5StickC-IDF/blob/master/components/m5stickc-idf/util/include/axp192_reg.h
 
@@ -59,10 +59,11 @@ namespace LunokIoT {
                 BATTERY_CHARGE_CONTROL=(0x35),
                 PEK_PARAMETHERS=(0x36),
                 BATTERY_CHARGE_HIGH_TEMP=(0x39),
-                //IRQ_STATUS_1=(0x44),
-                //IRQ_STATUS_2=(0x45),
+                IRQ_ENABLE_3=(0x42),
+                IRQ_STATUS_1=(0x44),
+                IRQ_STATUS_2=(0x45),
                 IRQ_STATUS_3=(0x46), /* bits: [0]=PEK LONG, [1]=PEK SHORT */
-                //IRQ_STATUS_4=(0x47),
+                IRQ_STATUS_4=(0x47),
                 //ACIN_VOLTAGE=(0x56),
                 //ACIN_CURRENT=(0x58),
                 //VBUS_VOLTAGE=(0x5a),

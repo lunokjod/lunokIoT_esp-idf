@@ -8,7 +8,7 @@ extern "C" {
 
 // all know device addresses (and some kind of contract to develop those i2c drivers)
 #define I2C_ADDR_BMM150 0x10
-#define I2C_ADDR_BMA423 0x19
+#define I2C_ADDR_BMA423_ALT 0x19
 #define I2C_ADDR_AXP202 0x35
 #define I2C_ADDR_MFRC522 0x28
 #define I2C_ADDR_AXP192 0x34

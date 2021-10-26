@@ -3,6 +3,7 @@
 #include "ESP32/Devices/ESP32.hpp"
 #include "ESP32/Devices/LilygoTWatch2020v3.hpp"
 #include "ESP32/Drivers/Button.hpp"
+#include "ESP32/Drivers/AXP202.hpp"
 
 #include <freertos/task.h>
 #include <esp_spi_flash.h>
@@ -35,11 +36,11 @@ LilygoTWatch2020v3Device::LilygoTWatch2020v3Device(): ESP32Device((const char*)"
     debug_printf("Setup");
     this->_period = 2000;
     debug_printf("I2C default port setup: $> i2cconfig --port 1 --sda 21 --scl 22 --freq 400000");
-    debug_printf("I2C FT6336 port setup: $> i2cconfig --port 1 --sda 23 --scl 32 --freq 400000");
-    //debug_printf("I2C ATOM-MATE port setup: $> i2cconfig --port 1 --sda 19 --scl 22 --freq 400000");
+    debug_printf("I2C touch port setup: $> i2cconfig --port 1 --sda 23 --scl 32 --freq 400000");
 
-    //this->sk6812 = new SK6812Driver(SK6812_PIN);
-    //this->button = new ButtonDriver(BUTTON_PIN);
+    // AXP202
+    this->axp202 = new AXP202Driver(this->i2c, I2C_PORT, I2C_MASTER_FREQ_HZ, I2C0_SDA, I2C0_SCL);
+
 
     debug_printf("End Setup");
 #ifdef CONFIG_LUNOKIOT_DEVICE_LILYGO_TWATCH_2020_V3

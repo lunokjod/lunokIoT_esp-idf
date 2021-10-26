@@ -253,7 +253,7 @@ AXP192Driver::AXP192Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
     // i2c Step 1, configure:
 
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
-    debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
+    debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::IRQMASK);
 }
 
 bool AXP192Driver::Loop() {
@@ -304,8 +304,8 @@ bool AXP192Driver::Loop() {
     }
 
 
-    // AXP192 irq ack
-    const uint8_t write_buf[2] = { I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK };
+    // AXP192 irq clear (accept another one)
+    const uint8_t write_buf[2] = { I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::IRQMASK };
     res = i2c_master_write_to_device(I2C_NUM_0, I2C_ADDR_AXP192, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         printf("%s:%d %s() i2c_master_write_to_device error: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));

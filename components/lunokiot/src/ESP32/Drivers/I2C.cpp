@@ -471,9 +471,9 @@ void register_i2ctools(void)
 
 void BuildI2CDatabase() { // database maybe are too for this x'D
 
-    i2cDatabase[I2C_ADDR_BMM150] = "BMM150";
-    i2cDatabase[I2C_ADDR_BMA423] = "BMA423 (MEMS) alt. addr.";
-    i2cDatabase[I2C_ADDR_AXP202] = "AXP202 (PMU)"; // lilygo
+    i2cDatabase[I2C_ADDR_BMM150] = "BMM150 (MAG)";
+    i2cDatabase[I2C_ADDR_BMA423_ALT] = "BMA423 (MEMS) alt. addr.";
+    i2cDatabase[I2C_ADDR_AXP202] = "AXP202 (PMU)"; // lilygo twatch 2020 v*?
     i2cDatabase[I2C_ADDR_MFRC522] = "MFRC522 (RFID)";
     i2cDatabase[I2C_ADDR_AXP192] = "AXP192 (PMU)"; // M5SickC/CPlus
     i2cDatabase[I2C_ADDR_FT6336] = "FT6336 (Touch)"; // lilygo
@@ -490,17 +490,6 @@ using namespace LunokIoT;
 
 I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", -1) {
     debug_printf("Setup");
-    /*
-    const esp_console_cmd_t cmdInit = {
-        .command = "wifi_init",
-        .help = "Poweron the WiFi device",
-        .hint = NULL,
-        .func = &WiFiDriver::Init,
-        .argtable = nullptr
-    };
-    wifiDriverInstance = this; //@TODO this is UGLY
-    ESP_ERROR_CHECK( esp_console_cmd_register(&cmdInit) );
-*/
     BuildI2CDatabase();
     register_i2ctools();
 
