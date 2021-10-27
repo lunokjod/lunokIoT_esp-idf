@@ -8,6 +8,7 @@
 #include "ESP32/Drivers/Button.hpp"
 #include "base/I2CDatabase.hpp"
 #include "ESP32/Drivers/I2C.hpp"
+
 // https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/src/board/twatch2020_v3.h
 #define TFT_WIDTH                   (240)
 #define TFT_HEIGHT                  (240)
@@ -89,6 +90,8 @@ namespace LunokIoT {
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         uint8_t i2caddress=I2C_ADDR_AXP202);
             bool Loop();
+            bool ReadStatus();
+            bool Clearbits();
             intr_handle_t handler; //@TODO why I can't capture int 35?
             // i2c settings
             I2CDriver *i2cHandler;

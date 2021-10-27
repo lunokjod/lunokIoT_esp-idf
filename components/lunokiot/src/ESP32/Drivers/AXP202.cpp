@@ -12,15 +12,18 @@
 #include "ESP32/Drivers/AXP202.hpp"
 #include "ESP32/Drivers/Button.hpp"
 #include "ESP32/Drivers/I2C.hpp"
+
+// https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/docs/watch_2020_v3.md
+// volatile 
 bool axp202Interrupt = false;
-void IRAM_ATTR gpioHandler(void* arg)
-{
-	//debug_printf("interrupt");
+static void IRAM_ATTR gpioHandler(void* arg) {
     axp202Interrupt = true;
 }
 static void setupIRQ(void *arg){
     debug_printf("setupIRQ");
-   // https://www.esp32.com/viewtopic.php?t=15915
+
+    //LunokIoT::AXP202Driver *instance = static_cast<LunokIoT::AXP202Driver*>(arg);
+    //instance->Init();
     
     gpio_config_t io_conf = {};
     //ESP_ERROR_CHECK(gpio_set_intr_type(AXP202_INT, GPIO_INTR_ANYEDGE));
@@ -30,8 +33,10 @@ static void setupIRQ(void *arg){
     io_conf.pull_up_en = gpio_pullup_t(false);
     io_conf.pin_bit_mask = (1ULL<<AXP202_INT);
     ESP_ERROR_CHECK(gpio_config(&io_conf));
+
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
     ESP_ERROR_CHECK(gpio_isr_handler_add(AXP202_INT, gpioHandler, (void*)nullptr));
+
     vTaskDelete(NULL);
 }
 
@@ -65,11 +70,15 @@ AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
     debug_printf("Setup (i2c port: %d, sda=%d scl=%d, addr:%d)", port, sda, scl, address);
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html
     
-    xTaskCreate(setupIRQ, "setup irq", 1024 * 2, (void *)0, 10, NULL);
+    xTaskCreate(setupIRQ, "setup irq", 1024 * 2, (void *)this, 10, NULL); // ugly trick to pin the interrupt to core
     this->Init();
+    this->ReadStatus();
+    this->Clearbits();
 
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
-    debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
+    //debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
+    
+    this->period = 300;  // time between irq detection
 }
 
 // here the last copy of loop
@@ -79,18 +88,28 @@ uint8_t IRQ_STATUS_3_CACHE = 0x0;
 uint8_t IRQ_STATUS_4_CACHE = 0x0;
 uint8_t IRQ_STATUS_5_CACHE = 0x0;
 
-// I hate pooling
-bool AXP202Driver::Loop() {
-
-    if ( !axp202Interrupt ) {
-        return true;
-    }
-    debug_printf("INTERRUPT FROM GPIO!!!");
-    
+bool AXP202Driver::Clearbits() {
     // talk with AXP202
     bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
     if ( true != works ) {
         debug_printferror("Woah! unable to start i2c session");
+        return false; // try again next time
+    }
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, 0xff);
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_2, 0xff);
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_3, 0xff);
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_4, 0xff);
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_5, 0xff);
+
+    // free i2c
+    i2cHandler->FreeI2CSession(port);
+    return true;
+}
+bool AXP202Driver::ReadStatus() {
+    // talk with AXP202
+    bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
+    if ( true != works ) {
+        debug_printferror("Unable to start i2c session");
         return true; // try again next time
     }
     // get status1
@@ -100,7 +119,7 @@ bool AXP202Driver::Loop() {
         if ( status1 != IRQ_STATUS_1_CACHE ) {
             debug_printf("IRQ_STATUS_1: 0x%x", status1);
             IRQ_STATUS_1_CACHE = status1; // update cache
-            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, status1);
+            
         }
     }
     // get status2
@@ -110,7 +129,7 @@ bool AXP202Driver::Loop() {
         if ( status2 != IRQ_STATUS_2_CACHE ) {
             debug_printf("IRQ_STATUS_2: 0x%x", status2);
             IRQ_STATUS_2_CACHE = status2; // update cache
-            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_2, status2);
+            
         }
     }
     // get status3
@@ -120,7 +139,6 @@ bool AXP202Driver::Loop() {
         if ( status3 != IRQ_STATUS_3_CACHE ) {
             debug_printf("IRQ_STATUS_3: 0x%x", status3);
             IRQ_STATUS_3_CACHE = status3; // update cache
-            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_3, status3);
         }
     }
     // get status4
@@ -130,7 +148,6 @@ bool AXP202Driver::Loop() {
         if ( status4 != IRQ_STATUS_4_CACHE ) {
             debug_printf("IRQ_STATUS_4: 0x%x", status4);
             IRQ_STATUS_4_CACHE = status4; // update cache
-            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_4, status4);
         }
     }
     // get status5
@@ -140,12 +157,26 @@ bool AXP202Driver::Loop() {
         if ( status5 != IRQ_STATUS_5_CACHE ) {
             debug_printf("IRQ_STATUS_5: 0x%x", status5);
             IRQ_STATUS_5_CACHE = status5; // update cache
-            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_5, status5);
         }
     }
-
     // free i2c
     i2cHandler->FreeI2CSession(port);
+    return true;
+}
+
+// I hate pooling
+bool AXP202Driver::Loop() {
+    
+    // no interrupt triggered?, get out!
+    if ( false == axp202Interrupt ) { 
+        return true;
+    }
+    debug_printf("INT: %s", axp202Interrupt?"true":"false");
+
+    this->ReadStatus();
+    this->Clearbits();
+    //this->Init();
+
     axp202Interrupt = false;
     return true;
 /*
