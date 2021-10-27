@@ -36,6 +36,7 @@ namespace LunokIoT {
                         uint8_t i2caddress);
             bool FreeI2CSession(i2c_port_t i2cport);
             bool SetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, const uint8_t value);
+            bool GetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, uint8_t &value);
         public:
             I2CDriver();
             bool Loop();

@@ -500,12 +500,22 @@ bool I2CDriver::Loop() {
     return true;
 }
 
+bool I2CDriver::GetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, uint8_t &value) {
+    esp_err_t res = i2c_master_write_read_device(i2cport, address, &i2cregister, 1, &value, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
+    if ( ESP_OK != res ) {
+        debug_printferror("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
+        return false;
+    }
+    return true;
+}
+
+
 
 bool I2CDriver::SetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, const uint8_t value) {
     const uint8_t write_buf[2] = { i2cregister, value };
     esp_err_t res = i2c_master_write_to_device(i2cport, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
-        debug_printferror("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
+        debug_printferror("i2c_master_write_to_device ERROR: %s", esp_err_to_name(res));
         return false;
     }
     if ( value != write_buf[1]) {

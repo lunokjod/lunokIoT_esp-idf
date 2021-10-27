@@ -8,7 +8,38 @@
 #include "ESP32/Drivers/Button.hpp"
 #include "base/I2CDatabase.hpp"
 #include "ESP32/Drivers/I2C.hpp"
+// https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/src/board/twatch2020_v3.h
+#define TFT_WIDTH                   (240)
+#define TFT_HEIGHT                  (240)
 
+#define TWATCH_TFT_MISO             (GPIO_NUM_MAX)
+#define TWATCH_TFT_MOSI             (GPIO_NUM_19)
+#define TWATCH_TFT_SCLK             (GPIO_NUM_18)
+#define TWATCH_TFT_CS               (GPIO_NUM_5)
+#define TWATCH_TFT_DC               (GPIO_NUM_27)
+#define TWATCH_TFT_RST              (GPIO_NUM_MAX)
+#define TWATCH_TFT_BL               (GPIO_NUM_15)
+
+#define TOUCH_SDA                   (GPIO_NUM_23)
+#define TOUCH_SCL                   (GPIO_NUM_32)
+#define TOUCH_INT                   (GPIO_NUM_38)
+#define TOUCH_RST                   (GPIO_NUM_14)
+
+#define SEN_SDA                     (GPIO_NUM_21)
+#define SEN_SCL                     (GPIO_NUM_22)
+
+#define RTC_INT_PIN                 (GPIO_NUM_37)
+#define AXP202_INT                  (GPIO_NUM_35)
+#define BMA423_INT1                 (GPIO_NUM_39)
+
+#define TWATCH_2020_IR_PIN          (GPIO_NUM_13)
+
+
+#define TWATCH_DAC_IIS_BCK          (GPIO_NUM_26)
+#define TWATCH_DAC_IIS_WS           (GPIO_NUM_25)
+#define TWATCH_DAC_IIS_DOUT         (GPIO_NUM_33)
+
+#define MOTOR_PIN                   (GPIO_NUM_4)
 namespace LunokIoT {
 
 /* default settings here */
@@ -35,6 +66,7 @@ namespace LunokIoT {
             
             enum I2C_REGISTER {
                 // enable IRQ values
+                // default [7~0]=1101 1000
                 IRQ_ENABLE_1=(0x40), /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */
                 IRQ_ENABLE_2=(0x41), /* bits: [0]=BATT LOW TEMP,            [1]=BATT OVERHEAT,        [2]=BATT CHARGED,      [3]=BATT CHARGING,       [4]=BATT EXIT ACTIVATE,  [5]=BATT ACTIVATE, [6]=BATT REMOVED,        [7]=BATT CONNECTED    */
                 IRQ_ENABLE_3=(0x42), /* bits: [0]=PEK LONG,                 [1]=PEK SHORT,            [2]=LDO3 UNDERVOLTAGE, [3]=DC-DC3 UNDERVOLTAGE, [4]=DC-DC2 UNDERVOLTAGE, [X]=RESERVED,      [6]=CHARGE UNDERVOLTAGE, [7]=INTERNAL OVERHEAT */
@@ -57,7 +89,7 @@ namespace LunokIoT {
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         uint8_t i2caddress=I2C_ADDR_AXP202);
             bool Loop();
-
+            intr_handle_t handler; //@TODO why I can't capture int 35?
             // i2c settings
             I2CDriver *i2cHandler;
             i2c_port_t port;
