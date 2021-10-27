@@ -1,32 +1,59 @@
+#include <freertos/FreeRTOS.h>
 #include <driver/i2c.h>     // ESP32 i2c
 #include <hal/gpio_types.h> // ESP32 gpio
+#include <driver/gpio.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "LunokIoT.hpp"
 #include "ESP32/Driver.hpp"
 #include "ESP32/Drivers/AXP202.hpp"
 #include "ESP32/Drivers/Button.hpp"
 #include "ESP32/Drivers/I2C.hpp"
-
-#define GPIO_LED GPIO_NUM_27
-
-void gpioHandler(void* arg)
+bool axp202Interrupt = false;
+void IRAM_ATTR gpioHandler(void* arg)
 {
-	printf("Interrupt\n");
-	//gpio_set_level(GPIO_LED, 1);
+	//debug_printf("interrupt");
+    axp202Interrupt = true;
+}
+static void setupIRQ(void *arg){
+    debug_printf("setupIRQ");
+   // https://www.esp32.com/viewtopic.php?t=15915
+    
+    gpio_config_t io_conf = {};
+    //ESP_ERROR_CHECK(gpio_set_intr_type(AXP202_INT, GPIO_INTR_ANYEDGE));
+    io_conf.intr_type = gpio_int_type_t(GPIO_INTR_ANYEDGE);
+    io_conf.mode = gpio_mode_t(GPIO_MODE_INPUT);
+    io_conf.pull_down_en = gpio_pulldown_t(false);
+    io_conf.pull_up_en = gpio_pullup_t(false);
+    io_conf.pin_bit_mask = (1ULL<<AXP202_INT);
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(AXP202_INT, gpioHandler, (void*)nullptr));
+    vTaskDelete(NULL);
 }
 
 using namespace LunokIoT;
 
 void AXP202Driver::Init() {
+ 
+
     bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
     if ( false == works ) { return; }
-    // @TODO enable all status registers
-/*
-    { // enable button INTR
-        // @TODO  remember to do a read and write &= version on final version
-        i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_3, PEK_BUTTON::MASK);
-        debug_printf("Enable Button driven by interrupt");
-    }*/
+    
+    // enable all status registers
+    /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */    
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
+    /* bits: [0]=BATT LOW TEMP,            [1]=BATT OVERHEAT,        [2]=BATT CHARGED,      [3]=BATT CHARGING,       [4]=BATT EXIT ACTIVATE,  [5]=BATT ACTIVATE, [6]=BATT REMOVED,        [7]=BATT CONNECTED    */
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_2, 0b11111111);
+    /* bits: [0]=PEK LONG,                 [1]=PEK SHORT,            [2]=LDO3 UNDERVOLTAGE, [3]=DC-DC3 UNDERVOLTAGE, [4]=DC-DC2 UNDERVOLTAGE, [X]=RESERVED,      [6]=CHARGE UNDERVOLTAGE, [7]=INTERNAL OVERHEAT */
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_3, 0b11111011);
+    /* bits: [0]=AXP UNDERVOLTAGE LEVEL 2, [1]=UNDERVOLTAGE LEVEL 1, [2]=VBUS SESSION END,  [3]=VBUS SESION A/B,     [4]=VBUS INVALID,        [5]=VBUS VALID,    [6]=N_OE SHUTDOWN,       [7]=N_OE STARTUP      */
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_4, 0b11111111);
+    /* bits: [0]=GPIO0 INPUT,              [1]=GPIO1 INPUT,          [2]=GPIO2 INPUT,       [3]=GPIO3 INPUT,         [X]=RESERVED,            [5]=PEK PRESS,     [6]=PEK RELEASED,        [7]=TIMER TIMEOUT     */
+    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_5, 0b11110111);
 
    i2cHandler->FreeI2CSession(port);
     // @TODO is possible to do a interrupt handling?
@@ -38,6 +65,7 @@ AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
     debug_printf("Setup (i2c port: %d, sda=%d scl=%d, addr:%d)", port, sda, scl, address);
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html
     
+    xTaskCreate(setupIRQ, "setup irq", 1024 * 2, (void *)0, 10, NULL);
     this->Init();
 
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
@@ -54,6 +82,11 @@ uint8_t IRQ_STATUS_5_CACHE = 0x0;
 // I hate pooling
 bool AXP202Driver::Loop() {
 
+    if ( !axp202Interrupt ) {
+        return true;
+    }
+    debug_printf("INTERRUPT FROM GPIO!!!");
+    
     // talk with AXP202
     bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
     if ( true != works ) {
@@ -67,6 +100,7 @@ bool AXP202Driver::Loop() {
         if ( status1 != IRQ_STATUS_1_CACHE ) {
             debug_printf("IRQ_STATUS_1: 0x%x", status1);
             IRQ_STATUS_1_CACHE = status1; // update cache
+            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, status1);
         }
     }
     // get status2
@@ -76,6 +110,7 @@ bool AXP202Driver::Loop() {
         if ( status2 != IRQ_STATUS_2_CACHE ) {
             debug_printf("IRQ_STATUS_2: 0x%x", status2);
             IRQ_STATUS_2_CACHE = status2; // update cache
+            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_2, status2);
         }
     }
     // get status3
@@ -85,6 +120,7 @@ bool AXP202Driver::Loop() {
         if ( status3 != IRQ_STATUS_3_CACHE ) {
             debug_printf("IRQ_STATUS_3: 0x%x", status3);
             IRQ_STATUS_3_CACHE = status3; // update cache
+            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_3, status3);
         }
     }
     // get status4
@@ -94,6 +130,7 @@ bool AXP202Driver::Loop() {
         if ( status4 != IRQ_STATUS_4_CACHE ) {
             debug_printf("IRQ_STATUS_4: 0x%x", status4);
             IRQ_STATUS_4_CACHE = status4; // update cache
+            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_4, status4);
         }
     }
     // get status5
@@ -103,17 +140,13 @@ bool AXP202Driver::Loop() {
         if ( status5 != IRQ_STATUS_5_CACHE ) {
             debug_printf("IRQ_STATUS_5: 0x%x", status5);
             IRQ_STATUS_5_CACHE = status5; // update cache
+            i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_5, status5);
         }
     }
-    // AXP202 irq ack
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_2, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_3, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_4, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_5, 0xff);
 
     // free i2c
     i2cHandler->FreeI2CSession(port);
+    axp202Interrupt = false;
     return true;
 /*
 
