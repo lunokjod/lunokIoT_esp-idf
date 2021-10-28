@@ -12,7 +12,8 @@
 #include "ESP32/Drivers/AXP202.hpp"
 #include "ESP32/Drivers/Button.hpp"
 #include "ESP32/Drivers/I2C.hpp"
-
+// code/lilygo/TTGO_TWatch_Library/src/drive/axp/axp20x.cpp
+// code/lilygo/TTGO_TWatch_Library/src/TTGO.h:1346
 // https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/docs/watch_2020_v3.md
 // volatile 
 bool axp202Interrupt = false;
@@ -44,23 +45,30 @@ using namespace LunokIoT;
 
 void AXP202Driver::Init() {
  
-
-    bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
-    if ( false == works ) { return; }
+    lunokiot_i2c_channel_descriptor_t i2cDescriptor = {};
+    bool works = i2cHandler->GetSession(frequency, sda, scl, i2cDescriptor);
+    
+    //i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
+    if ( false == works ) { 
+        debug_printferror("Unable to get i2c session!");
+        return;
+    }
     
     // enable all status registers
-    /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */    
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
+    /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
+    //i2cHandler->SetI2CChar(i2cDescriptor.port, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
     /* bits: [0]=BATT LOW TEMP,            [1]=BATT OVERHEAT,        [2]=BATT CHARGED,      [3]=BATT CHARGING,       [4]=BATT EXIT ACTIVATE,  [5]=BATT ACTIVATE, [6]=BATT REMOVED,        [7]=BATT CONNECTED    */
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_2, 0b11111111);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_2, 0b11111111);
     /* bits: [0]=PEK LONG,                 [1]=PEK SHORT,            [2]=LDO3 UNDERVOLTAGE, [3]=DC-DC3 UNDERVOLTAGE, [4]=DC-DC2 UNDERVOLTAGE, [X]=RESERVED,      [6]=CHARGE UNDERVOLTAGE, [7]=INTERNAL OVERHEAT */
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_3, 0b11111011);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_3, 0b11111011);
     /* bits: [0]=AXP UNDERVOLTAGE LEVEL 2, [1]=UNDERVOLTAGE LEVEL 1, [2]=VBUS SESSION END,  [3]=VBUS SESION A/B,     [4]=VBUS INVALID,        [5]=VBUS VALID,    [6]=N_OE SHUTDOWN,       [7]=N_OE STARTUP      */
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_4, 0b11111111);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_4, 0b11111111);
     /* bits: [0]=GPIO0 INPUT,              [1]=GPIO1 INPUT,          [2]=GPIO2 INPUT,       [3]=GPIO3 INPUT,         [X]=RESERVED,            [5]=PEK PRESS,     [6]=PEK RELEASED,        [7]=TIMER TIMEOUT     */
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_ENABLE_5, 0b11110111);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_5, 0b11110111);
 
-   i2cHandler->FreeI2CSession(port);
+   //i2cHandler->FreeI2CSession(port);
+   i2cHandler->FreeSession(i2cDescriptor);
     // @TODO is possible to do a interrupt handling?
 }
 
@@ -90,31 +98,39 @@ uint8_t IRQ_STATUS_5_CACHE = 0x0;
 
 bool AXP202Driver::Clearbits() {
     // talk with AXP202
-    bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
+    lunokiot_i2c_channel_descriptor_t i2cDescriptor = {};
+    bool works = i2cHandler->GetSession(frequency, sda, scl, i2cDescriptor);
+    // i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
     if ( true != works ) {
         debug_printferror("Woah! unable to start i2c session");
-        return false; // try again next time
+        return false; // try again later
     }
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_2, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_3, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_4, 0xff);
-    i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_5, 0xff);
+    //i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, 0xff);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, 0xff);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_2, 0xff);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, 0xff);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, 0xff);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, 0xff);
 
     // free i2c
-    i2cHandler->FreeI2CSession(port);
+    
+    //i2cHandler->FreeI2CSession(port);
+    i2cHandler->FreeSession(i2cDescriptor);
     return true;
 }
 bool AXP202Driver::ReadStatus() {
     // talk with AXP202
-    bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
+    lunokiot_i2c_channel_descriptor_t myDescriptor = {};
+    bool works = i2cHandler->GetSession(frequency, sda, scl, myDescriptor);
+    //i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
     if ( true != works ) {
         debug_printferror("Unable to start i2c session");
         return true; // try again next time
     }
     // get status1
     uint8_t status1 = 0x0;
-    works = i2cHandler->GetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, status1);
+    works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, status1);
+    //i2cHandler->GetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, status1);
     if ( works ) {
         if ( status1 != IRQ_STATUS_1_CACHE ) {
             debug_printf("IRQ_STATUS_1: 0x%x", status1);
@@ -124,7 +140,7 @@ bool AXP202Driver::ReadStatus() {
     }
     // get status2
     uint8_t status2 = 0x0;
-    works = i2cHandler->GetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_2, status2);
+    works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_2, status2);
     if ( works ) {
         if ( status2 != IRQ_STATUS_2_CACHE ) {
             debug_printf("IRQ_STATUS_2: 0x%x", status2);
@@ -134,7 +150,7 @@ bool AXP202Driver::ReadStatus() {
     }
     // get status3
     uint8_t status3 = 0x0;
-    works = i2cHandler->GetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_3, status3);
+    works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, status3);
     if ( works ) {
         if ( status3 != IRQ_STATUS_3_CACHE ) {
             debug_printf("IRQ_STATUS_3: 0x%x", status3);
@@ -143,7 +159,7 @@ bool AXP202Driver::ReadStatus() {
     }
     // get status4
     uint8_t status4 = 0x0;
-    works = i2cHandler->GetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_4, status4);
+    works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, status4);
     if ( works ) {
         if ( status4 != IRQ_STATUS_4_CACHE ) {
             debug_printf("IRQ_STATUS_4: 0x%x", status4);
@@ -152,7 +168,7 @@ bool AXP202Driver::ReadStatus() {
     }
     // get status5
     uint8_t status5 = 0x0;
-    works = i2cHandler->GetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_5, status5);
+    works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, status5);
     if ( works ) {
         if ( status5 != IRQ_STATUS_5_CACHE ) {
             debug_printf("IRQ_STATUS_5: 0x%x", status5);
@@ -160,7 +176,8 @@ bool AXP202Driver::ReadStatus() {
         }
     }
     // free i2c
-    i2cHandler->FreeI2CSession(port);
+    i2cHandler->FreeSession(myDescriptor);
+    //i2cHandler->FreeI2CSession(port);
     return true;
 }
 
