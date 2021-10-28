@@ -10,12 +10,6 @@
 #include "../Driver.hpp"
 
 
-
-
-namespace LunokIoT {
-#define ESP32_I2C_PORTS 2
-#define ESP32_I2C_FREE_TIMEOUT 1000;
-
 typedef struct {
     SemaphoreHandle_t useLock; // must be set on GetSession and freed on FreeSession
     i2c_port_t port; // redundant, is the offset of struct (see class member "channels")
@@ -25,6 +19,8 @@ typedef struct {
     TickType_t lastUsed;
 
 } lunokiot_i2c_channel_descriptor_t;
+
+namespace LunokIoT {
 
 #define I2C_DEFAULT_PORT I2C_NUM_1
 #define I2C_MASTER_FREQ_HZ 400000
@@ -41,15 +37,14 @@ typedef struct {
     class I2CDriver : public Driver {
         private:
             SemaphoreHandle_t _mutexLock = xSemaphoreCreateMutex();
-            // channel descriptors, see GetSession
-            lunokiot_i2c_channel_descriptor_t channels[ESP32_I2C_PORTS] = {};
+
         public:
             bool GetSession(uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio, lunokiot_i2c_channel_descriptor_t &descriptor);
             bool FreeSession(lunokiot_i2c_channel_descriptor_t &descriptor);
             bool GetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t address, const uint8_t i2cregister, uint8_t &value);
             bool SetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t address, const uint8_t i2cregister, const uint8_t value);
-
+            void CleanupSessions();
             //@TODO @FUTURE some kind of hanle must be served, allowing multitasking
             [[deprecated("Please use GetSession instead")]]
             bool GetI2CSession(i2c_port_t i2cport, uint32_t i2cfrequency, 

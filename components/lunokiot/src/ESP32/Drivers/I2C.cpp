@@ -10,9 +10,16 @@
 
 #include "base/I2CDatabase.hpp"
 
+#define ESP32_I2C_PORTS 2
+#define ESP32_I2C_FREE_TIMEOUT 1000;
+
+// channel descriptors, see GetSession
+lunokiot_i2c_channel_descriptor_t channels[ESP32_I2C_PORTS] = {};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 
 // https://raw.githubusercontent.com/espressif/esp-idf/b22c975a3bc5960b9a1efd631d3dd012998086f3/examples/peripherals/i2c/i2c_tools/main/cmd_i2ctools.c
@@ -148,6 +155,28 @@ static void register_i2cconfig(void)
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&i2cconfig_cmd));
 }
+static int do_i2cchannels_cmd(int argc, char **argv) {
+    size_t offset = 0;
+    for (;offset<ESP32_I2C_PORTS;offset++) {
+        debug_printf("channel: %d", offset);
+        if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, 10) ) {
+            debug_printf("channel: %d is in use", offset);
+            //continue; // try next
+        } else {
+            xSemaphoreGive(channels[offset].useLock);
+        }
+        debug_printf("  channel port %d", channels[offset].port );
+        debug_printf("  channel frequency %d", channels[offset].frequency );
+        debug_printf("  channel sda %d", channels[offset].sda );
+        debug_printf("  channel scl %d", channels[offset].scl );
+        TickType_t lastUsed = channels[offset].lastUsed; 
+        if ( 0 != lastUsed ) {
+            lastUsed = xTaskGetTickCount() - channels[offset].lastUsed;;
+        }
+        debug_printf("  channel last use %dms", lastUsed );
+    }
+    return 0;
+}
 
 static int do_i2cdetect_cmd(int argc, char **argv) {
     bool deviceFoundAt[128] = { false };
@@ -197,6 +226,20 @@ static int do_i2cdetect_cmd(int argc, char **argv) {
     }
     return 0;
 }
+
+static void register_i2cchannels(void)
+{
+    const esp_console_cmd_t i2cchannels_cmd = {
+        .command = "i2channels",
+        .help = "Get lunokIoT channel queue information",
+        .hint = NULL,
+        .func = &do_i2cchannels_cmd,
+        .argtable = NULL
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&i2cchannels_cmd));
+}
+
+
 
 static void register_i2cdectect(void)
 {
@@ -461,6 +504,7 @@ void register_i2ctools(void)
     register_i2cget();
     register_i2cset();
     register_i2cdump();
+    register_i2cchannels();
 }
 
 #ifdef __cplusplus
@@ -488,7 +532,7 @@ void BuildI2CDatabase() { // database maybe are too for this x'D
 
 using namespace LunokIoT;
 
-I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", -1) {
+I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", 1000) {
     debug_printf("Setup");
     BuildI2CDatabase();
     register_i2ctools();
@@ -500,6 +544,7 @@ I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", -1) {
 }
 
 bool I2CDriver::Loop() {
+    this->CleanupSessions();
     //printf("%p %s Loop\n", this, this->name);
     return true;
 }
@@ -611,10 +656,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
     return true; // at this point the mutex is locked
 
 }
-bool I2CDriver::FreeSession(lunokiot_i2c_channel_descriptor_t &descriptor) {
-    descriptor.lastUsed = xTaskGetTickCount(); // update timeout
-    xSemaphoreGive(descriptor.useLock);
-
+void I2CDriver::CleanupSessions() {
     // iterate to close old unused descriptors
     size_t offset = 0;
     for (;offset<ESP32_I2C_PORTS;offset++) {
@@ -630,10 +672,15 @@ bool I2CDriver::FreeSession(lunokiot_i2c_channel_descriptor_t &descriptor) {
         TickType_t deadLine = channelAge + ESP32_I2C_FREE_TIMEOUT;
         TickType_t now = xTaskGetTickCount();
         if ( deadLine < now ) {
+            esp_err_t res = i2c_driver_delete(channels[offset].port);
+            if ( ESP_OK != res ) {
+                debug_printferror("i2c_driver_delete ERROR: %s\n", esp_err_to_name(res));
+            }
             channels[offset].frequency = 0;
             channels[offset].scl = gpio_num_t(0);
             channels[offset].sda = gpio_num_t(0);
             channels[offset].port = offset;
+            channels[offset].lastUsed = 0;
             xSemaphoreGive(channels[offset].useLock); // free lock
             debug_printf("Freed i2c channel %d due unused", offset);
             continue;
@@ -641,6 +688,11 @@ bool I2CDriver::FreeSession(lunokiot_i2c_channel_descriptor_t &descriptor) {
         xSemaphoreGive(channels[offset].useLock); // free lock
         debug_printf("i2c channel %d waiting for action", offset);
     }
+}
+bool I2CDriver::FreeSession(lunokiot_i2c_channel_descriptor_t &descriptor) {
+    descriptor.lastUsed = xTaskGetTickCount(); // update timeout
+    xSemaphoreGive(descriptor.useLock);
+    this->CleanupSessions();
     return true;
 }
 
