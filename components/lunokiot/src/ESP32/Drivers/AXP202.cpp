@@ -17,7 +17,10 @@
 // https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/docs/watch_2020_v3.md
 // volatile 
 bool axp202Interrupt = false;
+bool axp202Interrupt_DCDC3_voltage_high = false; // IRQ20
+
 static void IRAM_ATTR gpioHandler(void* arg) {
+
     axp202Interrupt = true;
 }
 static void setupIRQ(void *arg){
@@ -28,7 +31,7 @@ static void setupIRQ(void *arg){
     
     gpio_config_t io_conf = {};
     //ESP_ERROR_CHECK(gpio_set_intr_type(AXP202_INT, GPIO_INTR_ANYEDGE));
-    io_conf.intr_type = gpio_int_type_t(GPIO_INTR_ANYEDGE);
+    io_conf.intr_type = gpio_int_type_t(GPIO_INTR_NEGEDGE);
     io_conf.mode = gpio_mode_t(GPIO_MODE_INPUT);
     io_conf.pull_down_en = gpio_pulldown_t(false);
     io_conf.pull_up_en = gpio_pullup_t(false);
@@ -90,25 +93,31 @@ AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
 }
 
 // here the last copy of loop
-uint8_t IRQ_STATUS_1_CACHE = 0x0;
+uint8_t IRQ_STATUS_CACHE_LAST[] = { 0x0, 0x0, 0x0, 0x0, 0x0 };
+uint8_t IRQ_STATUS_CACHE_CURRENT[] = { 0x0, 0x0, 0x0, 0x0, 0x0 };
+/*
 uint8_t IRQ_STATUS_2_CACHE = 0x0;
 uint8_t IRQ_STATUS_3_CACHE = 0x0;
 uint8_t IRQ_STATUS_4_CACHE = 0x0;
 uint8_t IRQ_STATUS_5_CACHE = 0x0;
 
+uint8_t IRQ_STATUS_1_CACHE = 0x0;
+uint8_t IRQ_STATUS_2_CACHE = 0x0;
+uint8_t IRQ_STATUS_3_CACHE = 0x0;
+uint8_t IRQ_STATUS_4_CACHE = 0x0;
+uint8_t IRQ_STATUS_5_CACHE = 0x0;
+*/
+
 bool AXP202Driver::Clearbits() {
-    // talk with AXP202
     lunokiot_i2c_channel_descriptor_t i2cDescriptor = {};
     bool works = i2cHandler->GetSession(frequency, sda, scl, i2cDescriptor);
-    // i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
     if ( true != works ) {
-        debug_printferror("Woah! unable to start i2c session");
+        debug_printferror("Unable to start i2c session");
         return false; // try again later
     }
-    //i2cHandler->SetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, 0xff);
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, 0xff);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, 0b01111111);
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_2, 0xff);
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, 0xff);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, 0b11111011);
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, 0xff);
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, 0xff);
 
@@ -118,33 +127,196 @@ bool AXP202Driver::Clearbits() {
     i2cHandler->FreeSession(i2cDescriptor);
     return true;
 }
+void AXP202Driver::DescribeStatus(uint8_t status[5]=IRQ_STATUS_CACHE_CURRENT) { // https://www.tutorialspoint.com/cplusplus/cpp_bitwise_operators.htm
+    // print bit offset table
+//    printf("\nSTATUS  : [0][1][2][3][4][5][6][7]\n");
+    printf("\n          [0][1][2][3][4][5][6][7]\n");
+    /*
+    if ( pdTRUE != xSemaphoreTake(statusMutex, portMAX_DELAY) ) {
+        debug_printferror("Unable to get status mutex");
+        return;
+    }*/
+    //IRQ_STATUS_1_CACHE
+    //bool IRQ_ENABLE_1_BIT0_RESERVED = false;
+    bool IRQ_ENABLE_1_BIT1_VBUS_LOW = status[0] >> 1;
+    bool IRQ_ENABLE_1_BIT2_VBUS_REMOVED = status[0] >> 2;
+    bool IRQ_ENABLE_1_BIT3_VBUS_CONNECTED = status[0] >> 3;
+    bool IRQ_ENABLE_1_BIT4_VBUS_OVERVOLTAGE = status[0] >> 4;
+    bool IRQ_ENABLE_1_BIT5_ACIN_REMOVED = status[0] >> 5;
+    bool IRQ_ENABLE_1_BIT6_ACIN_CONNECTED = status[0] >> 6;
+    bool IRQ_ENABLE_1_BIT7_ACIN_OVERVOLTAGE = status[0] >> 7;
+    //IRQ_STATUS_2_CACHE
+    bool IRQ_ENABLE_2_BIT0_BATT_LOW_TEMP = status[1];
+    bool IRQ_ENABLE_2_BIT1_BATT_OVERHEAT = status[1] >> 1;
+    bool IRQ_ENABLE_2_BIT2_BATT_CHARGED = status[1] >> 2;
+    bool IRQ_ENABLE_2_BIT3_BATT_CHARGING = status[1] >> 3;
+    bool IRQ_ENABLE_2_BIT4_BATT_EXIT_ACTIVATE =  status[1] >> 4;
+    bool IRQ_ENABLE_2_BIT5_BATT_ACTIVATE =  status[1] >> 5;
+    bool IRQ_ENABLE_2_BIT6_BATT_REMOVED =  status[1] >> 6;
+    bool IRQ_ENABLE_2_BIT6_BATT_CONNECTED =  status[1] >> 7;
+    //IRQ_STATUS_3_CACHE
+    bool IRQ_ENABLE_3_BIT0_PEK_LONG = status[2];
+    bool IRQ_ENABLE_3_BIT1_PEK_SHORT = status[2] >> 1;
+    bool IRQ_ENABLE_3_BIT2_LDO3_UNDERVOLTAGE =  status[2] >> 2;
+    bool IRQ_ENABLE_3_BIT3_DC_DC3_UNDERVOLTAGE =  status[2] >> 3;
+    bool IRQ_ENABLE_3_BIT4_DC_DC2_UNDERVOLTAGE =  status[2] >> 4;
+    //bool IRQ_ENABLE_3_BIT5_RESERVED = false;
+    bool IRQ_ENABLE_3_BIT6_CHARGE_UNDERVOLTAGE =  status[2] >> 6;
+    bool IRQ_ENABLE_3_BIT7_INTERNAL_OVERHEAT =  status[2] >> 7;
+    //IRQ_STATUS_4_CACHE
+    bool IRQ_ENABLE_4_BIT0_AXP_UNDERVOLTAGE_LEVEL2 = status[3];
+    bool IRQ_ENABLE_4_BIT1_AXP_UNDERVOLTAGE_LEVEL1 = status[3] >> 1;
+    bool IRQ_ENABLE_4_BIT2_VBUS_SESSION_END = status[3] >> 2;
+    bool IRQ_ENABLE_4_BIT3_VBUS_SESSION_AB = status[3] >> 3;
+    bool IRQ_ENABLE_4_BIT4_VBUS_INVALID = status[3] >> 4;
+    bool IRQ_ENABLE_4_BIT5_VBUS_VALID = status[3] >> 5;
+    bool IRQ_ENABLE_4_BIT6_N_OE_SHUTDOWN = status[3] >> 6;
+    bool IRQ_ENABLE_4_BIT7_N_OE_STARTUP = status[3] >> 7;
+    //IRQ_STATUS_5_CACHE
+    bool IRQ_ENABLE_5_BIT0_GPIO0_INPUT = status[4];
+    bool IRQ_ENABLE_5_BIT1_GPIO1_INPUT = status[4] >>1;
+    bool IRQ_ENABLE_5_BIT2_GPIO2_INPUT = status[4] >>2;
+    bool IRQ_ENABLE_5_BIT3_GPIO3_INPUT = status[4] >>3;
+    //bool IRQ_ENABLE_5_BIT4_RESERVED = false;
+    bool IRQ_ENABLE_5_BIT5_PEK_PRESS =  status[4] >>5;
+    bool IRQ_ENABLE_5_BIT6_PEK_RELEASED =  status[4] >>6;
+    bool IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT =  status[4] >>7;
+    //xSemaphoreGive(statusMutex);
+
+    printf("STATUS 1: ");
+    //bool IRQ_ENABLE_1_BIT0_RESERVED = false;
+    printf("%s[R]%s", TERM_FG_GREY, TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_1_BIT1_VBUS_LOW?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_1_BIT1_VBUS_LOW?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_1_BIT2_VBUS_REMOVED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_1_BIT2_VBUS_REMOVED?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_1_BIT3_VBUS_CONNECTED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_1_BIT3_VBUS_CONNECTED?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_1_BIT4_VBUS_OVERVOLTAGE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_1_BIT4_VBUS_OVERVOLTAGE?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_1_BIT5_ACIN_REMOVED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_1_BIT5_ACIN_REMOVED?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_1_BIT6_ACIN_CONNECTED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_1_BIT6_ACIN_CONNECTED?"X":" ", TERM_RESET);
+    printf("%s[%s]%s ", IRQ_ENABLE_1_BIT7_ACIN_OVERVOLTAGE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_1_BIT7_ACIN_OVERVOLTAGE?"X":" ", TERM_RESET);
+
+    printf("%sreserved%s, ", TERM_FG_GREY, TERM_RESET);
+    printf("%svbus low%s, ",IRQ_ENABLE_1_BIT1_VBUS_LOW?TERM_FG_GREEN:TERM_RESET , TERM_RESET);
+    printf("%svbus removed%s, ",IRQ_ENABLE_1_BIT2_VBUS_REMOVED?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%svbus removed%s, ",IRQ_ENABLE_1_BIT2_VBUS_REMOVED?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%svbus connected%s, ",IRQ_ENABLE_1_BIT3_VBUS_CONNECTED?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%svbus overvoltage%s, ",IRQ_ENABLE_1_BIT4_VBUS_OVERVOLTAGE?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%svbus removed%s, ",IRQ_ENABLE_1_BIT5_ACIN_REMOVED?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%svbus connected%s, ",IRQ_ENABLE_1_BIT6_ACIN_CONNECTED?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%svbus overvoltage%s",IRQ_ENABLE_1_BIT7_ACIN_OVERVOLTAGE?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("\n");
+
+    printf("STATUS 2: ");
+    printf("%s[%s]%s", IRQ_ENABLE_2_BIT0_BATT_LOW_TEMP?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT0_BATT_LOW_TEMP?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_2_BIT1_BATT_OVERHEAT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT1_BATT_OVERHEAT?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_2_BIT2_BATT_CHARGED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT2_BATT_CHARGED?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_2_BIT3_BATT_CHARGING?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT3_BATT_CHARGING?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_2_BIT4_BATT_EXIT_ACTIVATE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT4_BATT_EXIT_ACTIVATE?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_2_BIT5_BATT_ACTIVATE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT5_BATT_ACTIVATE?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_2_BIT6_BATT_REMOVED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT6_BATT_REMOVED?"X":" ", TERM_RESET);
+    printf("%s[%s]%s ", IRQ_ENABLE_2_BIT6_BATT_CONNECTED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_2_BIT6_BATT_CONNECTED?"X":" ", TERM_RESET);
+
+    printf("%sbatt low temp%s, ",IRQ_ENABLE_2_BIT0_BATT_LOW_TEMP?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("%sbatt overheat%s, ",IRQ_ENABLE_2_BIT1_BATT_OVERHEAT?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("%sbatt charged%s, ",IRQ_ENABLE_2_BIT2_BATT_CHARGED?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("%sbatt charging%s, ",IRQ_ENABLE_2_BIT3_BATT_CHARGING?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("%sbatt exit activate%s, ",IRQ_ENABLE_2_BIT4_BATT_EXIT_ACTIVATE?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("%sbatt activate%s, ",IRQ_ENABLE_2_BIT5_BATT_ACTIVATE?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("%sbatt removed%s, ",IRQ_ENABLE_2_BIT6_BATT_REMOVED?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("%sbatt connected%s",IRQ_ENABLE_2_BIT6_BATT_CONNECTED?TERM_FG_GREEN:TERM_RESET,TERM_RESET);
+    printf("\n");
+
+    printf("STATUS 3: ");
+    printf("%s[%s]%s", IRQ_ENABLE_3_BIT0_PEK_LONG?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_3_BIT0_PEK_LONG?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_3_BIT1_PEK_SHORT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_3_BIT1_PEK_SHORT?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_3_BIT2_LDO3_UNDERVOLTAGE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_3_BIT2_LDO3_UNDERVOLTAGE?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_3_BIT3_DC_DC3_UNDERVOLTAGE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_3_BIT3_DC_DC3_UNDERVOLTAGE?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_3_BIT4_DC_DC2_UNDERVOLTAGE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_3_BIT4_DC_DC2_UNDERVOLTAGE?"X":" ", TERM_RESET);
+    printf("%s[R]%s", TERM_FG_GREY, TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_3_BIT6_CHARGE_UNDERVOLTAGE?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_3_BIT6_CHARGE_UNDERVOLTAGE?"X":" ", TERM_RESET);
+    printf("%s[%s]%s ", IRQ_ENABLE_3_BIT7_INTERNAL_OVERHEAT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_3_BIT7_INTERNAL_OVERHEAT?"X":" ", TERM_RESET);
+
+
+    printf("%spek_long%s, ",IRQ_ENABLE_3_BIT0_PEK_LONG?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%spek_short%s, ",IRQ_ENABLE_3_BIT1_PEK_SHORT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sLDO3 undervoltage%s, ",IRQ_ENABLE_3_BIT2_LDO3_UNDERVOLTAGE?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sDC-DC3 undervoltage%s, ",IRQ_ENABLE_3_BIT3_DC_DC3_UNDERVOLTAGE?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sDC-DC2 undervoltafe%s, ",IRQ_ENABLE_3_BIT4_DC_DC2_UNDERVOLTAGE?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sreserved%s, ", TERM_FG_GREY, TERM_RESET);
+    //bool IRQ_ENABLE_3_BIT5_RESERVED = false;
+    printf("%scharge undervoltage%s, ",IRQ_ENABLE_3_BIT6_CHARGE_UNDERVOLTAGE?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sinternal overheat%s",IRQ_ENABLE_3_BIT7_INTERNAL_OVERHEAT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("\n");
+
+    printf("STATUS 4: ");
+    printf("%s[%s]%s", IRQ_ENABLE_4_BIT0_AXP_UNDERVOLTAGE_LEVEL2?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT0_AXP_UNDERVOLTAGE_LEVEL2?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_4_BIT1_AXP_UNDERVOLTAGE_LEVEL1?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT1_AXP_UNDERVOLTAGE_LEVEL1?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_4_BIT2_VBUS_SESSION_END?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT2_VBUS_SESSION_END?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_4_BIT3_VBUS_SESSION_AB?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT3_VBUS_SESSION_AB?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_4_BIT4_VBUS_INVALID?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT4_VBUS_INVALID?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_4_BIT5_VBUS_VALID?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT5_VBUS_VALID?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_4_BIT6_N_OE_SHUTDOWN?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT6_N_OE_SHUTDOWN?"X":" ", TERM_RESET);
+    printf("%s[%s]%s ", IRQ_ENABLE_4_BIT7_N_OE_STARTUP?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_4_BIT7_N_OE_STARTUP?"X":" ", TERM_RESET);
+
+    printf("%sAXP undervoltage level2%s, ",IRQ_ENABLE_4_BIT0_AXP_UNDERVOLTAGE_LEVEL2?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sAXP undervoltage level1%s, ",IRQ_ENABLE_4_BIT1_AXP_UNDERVOLTAGE_LEVEL1?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sVBus session end%s, ",IRQ_ENABLE_4_BIT2_VBUS_SESSION_END?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sVBus session A/B%s, ",IRQ_ENABLE_4_BIT3_VBUS_SESSION_AB?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sVBus invalid%s, ",IRQ_ENABLE_4_BIT4_VBUS_INVALID?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sVBus valid%s, ",IRQ_ENABLE_4_BIT5_VBUS_VALID?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sN_OE shutdown%s, ",IRQ_ENABLE_4_BIT6_N_OE_SHUTDOWN?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sN_OE startup%s\n",IRQ_ENABLE_4_BIT7_N_OE_STARTUP?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+
+    printf("STATUS 5: ");
+    printf("%s[%s]%s", IRQ_ENABLE_5_BIT0_GPIO0_INPUT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT0_GPIO0_INPUT?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_5_BIT1_GPIO1_INPUT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT1_GPIO1_INPUT?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_5_BIT2_GPIO2_INPUT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT2_GPIO2_INPUT?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_5_BIT2_GPIO2_INPUT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT2_GPIO2_INPUT?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_5_BIT3_GPIO3_INPUT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT3_GPIO3_INPUT?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_5_BIT5_PEK_PRESS?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT5_PEK_PRESS?"X":" ", TERM_RESET);
+    printf("%s[%s]%s", IRQ_ENABLE_5_BIT6_PEK_RELEASED?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT6_PEK_RELEASED?"X":" ", TERM_RESET);
+    printf("%s[%s]%s ", IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT?TERM_FG_GREEN:TERM_FG_RED ,IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT?"X":" ", TERM_RESET);
+
+    printf("%sgpio0 input%s, ",IRQ_ENABLE_5_BIT0_GPIO0_INPUT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sgpio1 input%s, ",IRQ_ENABLE_5_BIT1_GPIO1_INPUT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sgpio2 input%s, ",IRQ_ENABLE_5_BIT2_GPIO2_INPUT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%sgpio3 input%s, ",IRQ_ENABLE_5_BIT3_GPIO3_INPUT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    //bool IRQ_ENABLE_5_BIT4_RESERVED = false;
+    printf("%spek press%s, ",IRQ_ENABLE_5_BIT5_PEK_PRESS?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%spek released%s, ",IRQ_ENABLE_5_BIT6_PEK_RELEASED?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+    printf("%stimer timeout%s\n",IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
+
+}
 bool AXP202Driver::ReadStatus() {
     // talk with AXP202
     lunokiot_i2c_channel_descriptor_t myDescriptor = {};
     bool works = i2cHandler->GetSession(frequency, sda, scl, myDescriptor);
-    //i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
     if ( true != works ) {
         debug_printferror("Unable to start i2c session");
         return true; // try again next time
     }
+    if ( pdTRUE != xSemaphoreTake(statusMutex, portMAX_DELAY) ) {
+        debug_printferror("Unable to get status mutex");
+        return true;
+    }
     // get status1
     uint8_t status1 = 0x0;
     works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, status1);
-    //i2cHandler->GetI2CChar(port, address, I2C_REGISTER::IRQ_STATUS_1, status1);
     if ( works ) {
-        if ( status1 != IRQ_STATUS_1_CACHE ) {
-            debug_printf("IRQ_STATUS_1: 0x%x", status1);
-            IRQ_STATUS_1_CACHE = status1; // update cache
-            
+        status1 &= 0b01111111; // remove reserved bit in this register
+        if ( status1 != IRQ_STATUS_CACHE_CURRENT[0] ) {
+            //debug_printf("IRQ_STATUS_1: 0x%x", status1);
+            IRQ_STATUS_CACHE_LAST[0] = IRQ_STATUS_CACHE_CURRENT[0]; // backup the last for irq reconeissance
+            IRQ_STATUS_CACHE_CURRENT[0] = status1; // update cache
         }
     }
     // get status2
     uint8_t status2 = 0x0;
     works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_2, status2);
     if ( works ) {
-        if ( status2 != IRQ_STATUS_2_CACHE ) {
-            debug_printf("IRQ_STATUS_2: 0x%x", status2);
-            IRQ_STATUS_2_CACHE = status2; // update cache
+        if ( status2 != IRQ_STATUS_CACHE_CURRENT[1] ) {
+            //debug_printf("IRQ_STATUS_2: 0x%x", status2);
+            IRQ_STATUS_CACHE_LAST[1] = IRQ_STATUS_CACHE_CURRENT[1]; // backup the last for irq reconeissance
+            IRQ_STATUS_CACHE_CURRENT[1] = status2; // update cache
             
         }
     }
@@ -152,35 +324,124 @@ bool AXP202Driver::ReadStatus() {
     uint8_t status3 = 0x0;
     works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, status3);
     if ( works ) {
-        if ( status3 != IRQ_STATUS_3_CACHE ) {
-            debug_printf("IRQ_STATUS_3: 0x%x", status3);
-            IRQ_STATUS_3_CACHE = status3; // update cache
+        status3 &= 0b11111011; // remove reserved bit in this register
+        if ( status3 != IRQ_STATUS_CACHE_CURRENT[2] ) {
+            //debug_printf("IRQ_STATUS_3: 0x%x", status3);
+            IRQ_STATUS_CACHE_LAST[2] = IRQ_STATUS_CACHE_CURRENT[2]; // backup the last for irq reconeissance
+            IRQ_STATUS_CACHE_CURRENT[2] = status3; // update cache
         }
     }
     // get status4
     uint8_t status4 = 0x0;
     works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, status4);
     if ( works ) {
-        if ( status4 != IRQ_STATUS_4_CACHE ) {
-            debug_printf("IRQ_STATUS_4: 0x%x", status4);
-            IRQ_STATUS_4_CACHE = status4; // update cache
+        if ( status4 != IRQ_STATUS_CACHE_CURRENT[3] ) {
+            //debug_printf("IRQ_STATUS_4: 0x%x", status4);
+            IRQ_STATUS_CACHE_LAST[3] = IRQ_STATUS_CACHE_CURRENT[3]; // backup the last for irq reconeissance
+            IRQ_STATUS_CACHE_CURRENT[3] = status4; // update cache
         }
     }
     // get status5
     uint8_t status5 = 0x0;
     works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, status5);
     if ( works ) {
-        if ( status5 != IRQ_STATUS_5_CACHE ) {
-            debug_printf("IRQ_STATUS_5: 0x%x", status5);
-            IRQ_STATUS_5_CACHE = status5; // update cache
+        if ( status5 != IRQ_STATUS_CACHE_CURRENT[4] ) {
+            //debug_printf("IRQ_STATUS_5: 0x%x", status5);
+            IRQ_STATUS_CACHE_LAST[4] = IRQ_STATUS_CACHE_CURRENT[4]; // backup the last for irq reconeissance
+            IRQ_STATUS_CACHE_CURRENT[4] = status5; // update cache
         }
     }
+    /*
+    debug_printf("=================> READSTATUS:");
+    this->DescribeStatus();
+    debug_printf("=================> LAST:");
+    this->DescribeStatus(IRQ_STATUS_CACHE_LAST);
+    */
+
+    xSemaphoreGive(statusMutex);
     // free i2c
     i2cHandler->FreeSession(myDescriptor);
-    //i2cHandler->FreeI2CSession(port);
     return true;
 }
+bool AXP202Driver::StatusChangeActions() {
+    bool anyChange = false;
+    if ( pdTRUE != xSemaphoreTake(statusMutex, portMAX_DELAY) ) {
+        debug_printferror("Unable to get status mutex");
+        return false;
+    }
+    // https://en.wikipedia.org/wiki/Bitwise_operations_in_C
+    // get diff from status registers
+    uint8_t changesSTEP[5];
+    uint8_t changes[5];
+    for ( size_t offset = 0; offset<sizeof(IRQ_STATUS_CACHE_CURRENT);offset++) {
+        changesSTEP[offset] = (IRQ_STATUS_CACHE_CURRENT[offset] ^ IRQ_STATUS_CACHE_LAST[offset]);
+        changes[offset] =  (IRQ_STATUS_CACHE_CURRENT[offset] & changesSTEP[offset]);
+    };
 
+    xSemaphoreGive(statusMutex);
+    debug_printf("Event flags:");
+    this->DescribeStatus(IRQ_STATUS_CACHE_CURRENT);
+    /*
+    debug_printf("=================> IRQ_STATUS_CACHE_LAST:");
+    this->DescribeStatus(IRQ_STATUS_CACHE_LAST);
+    debug_printf("=================> STEP:");
+    this->DescribeStatus(changesSTEP);*/
+    debug_printf("Calculated changed flags:");
+    this->DescribeStatus(changes);
+    
+    //IRQ_STATUS_1_CACHE
+    //bool IRQ_ENABLE_1_BIT0_RESERVED = false;
+    bool IRQ_ENABLE_1_BIT1_VBUS_LOW = changes[0] >> 1;
+    bool IRQ_ENABLE_1_BIT2_VBUS_REMOVED = changes[0] >> 2;
+    bool IRQ_ENABLE_1_BIT3_VBUS_CONNECTED = changes[0] >> 3;
+    bool IRQ_ENABLE_1_BIT4_VBUS_OVERVOLTAGE = changes[0] >> 4;
+    bool IRQ_ENABLE_1_BIT5_ACIN_REMOVED = changes[0] >> 5;
+    bool IRQ_ENABLE_1_BIT6_ACIN_CONNECTED = changes[0] >> 6;
+    bool IRQ_ENABLE_1_BIT7_ACIN_OVERVOLTAGE = changes[0] >> 7;
+    //IRQ_STATUS_2_CACHE
+    bool IRQ_ENABLE_2_BIT0_BATT_LOW_TEMP = changes[1];
+    bool IRQ_ENABLE_2_BIT1_BATT_OVERHEAT = changes[1] >> 1;
+    bool IRQ_ENABLE_2_BIT2_BATT_CHARGED = changes[1] >> 2;
+    bool IRQ_ENABLE_2_BIT3_BATT_CHARGING = changes[1] >> 3;
+    bool IRQ_ENABLE_2_BIT4_BATT_EXIT_ACTIVATE =  changes[1] >> 4;
+    bool IRQ_ENABLE_2_BIT5_BATT_ACTIVATE =  changes[1] >> 5;
+    bool IRQ_ENABLE_2_BIT6_BATT_REMOVED =  changes[1] >> 6;
+    bool IRQ_ENABLE_2_BIT6_BATT_CONNECTED =  changes[1] >> 7;
+    //IRQ_STATUS_3_CACHE
+    bool IRQ_ENABLE_3_BIT0_PEK_LONG = changes[2];
+    bool IRQ_ENABLE_3_BIT1_PEK_SHORT = changes[2] >> 1;
+    bool IRQ_ENABLE_3_BIT2_LDO3_UNDERVOLTAGE =  changes[2] >> 2;
+    bool IRQ_ENABLE_3_BIT3_DC_DC3_UNDERVOLTAGE =  changes[2] >> 3;
+    bool IRQ_ENABLE_3_BIT4_DC_DC2_UNDERVOLTAGE =  changes[2] >> 4;
+    //bool IRQ_ENABLE_3_BIT5_RESERVED = false;
+    bool IRQ_ENABLE_3_BIT6_CHARGE_UNDERVOLTAGE =  changes[2] >> 6;
+    bool IRQ_ENABLE_3_BIT7_INTERNAL_OVERHEAT =  changes[2] >> 7;
+    //IRQ_STATUS_4_CACHE
+    bool IRQ_ENABLE_4_BIT0_AXP_UNDERVOLTAGE_LEVEL2 = changes[3];
+    bool IRQ_ENABLE_4_BIT1_AXP_UNDERVOLTAGE_LEVEL1 = changes[3] >> 1;
+    bool IRQ_ENABLE_4_BIT2_VBUS_SESSION_END = changes[3] >> 2;
+    bool IRQ_ENABLE_4_BIT3_VBUS_SESSION_AB = changes[3] >> 3;
+    bool IRQ_ENABLE_4_BIT4_VBUS_INVALID = changes[3] >> 4;
+    bool IRQ_ENABLE_4_BIT5_VBUS_VALID = changes[3] >> 5;
+    bool IRQ_ENABLE_4_BIT6_N_OE_SHUTDOWN = changes[3] >> 6;
+    bool IRQ_ENABLE_4_BIT7_N_OE_STARTUP = changes[3] >> 7;
+    //IRQ_STATUS_5_CACHE
+    bool IRQ_ENABLE_5_BIT0_GPIO0_INPUT = changes[4];
+    bool IRQ_ENABLE_5_BIT1_GPIO1_INPUT = changes[4] >>1;
+    bool IRQ_ENABLE_5_BIT2_GPIO2_INPUT = changes[4] >>2;
+    bool IRQ_ENABLE_5_BIT3_GPIO3_INPUT = changes[4] >>3;
+    //bool IRQ_ENABLE_5_BIT4_RESERVED = false;
+    bool IRQ_ENABLE_5_BIT5_PEK_PRESS =  changes[4] >>5;
+    bool IRQ_ENABLE_5_BIT6_PEK_RELEASED =  changes[4] >>6;
+    bool IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT =  changes[4] >>7;
+
+    if ( ( IRQ_ENABLE_3_BIT0_PEK_LONG ) || (IRQ_ENABLE_3_BIT1_PEK_SHORT) ) {
+        debug_printf("Button pressed with event: %s press", IRQ_ENABLE_3_BIT1_PEK_SHORT?"short":"long");
+        anyChange = true;
+    }
+
+    return anyChange;
+}
 // I hate pooling
 bool AXP202Driver::Loop() {
     
@@ -188,45 +449,15 @@ bool AXP202Driver::Loop() {
     if ( false == axp202Interrupt ) { 
         return true;
     }
-    debug_printf("INT: %s", axp202Interrupt?"true":"false");
+    //debug_printf("INT: %s", axp202Interrupt?"true":"false");
 
     this->ReadStatus();
+    this->StatusChangeActions();
     this->Clearbits();
-    //this->Init();
-
+    // ack interrupt
     axp202Interrupt = false;
     return true;
 /*
-
-   bool works = i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
-    if ( true != works ) {
-        return true; // try again next time
-    }
-    // Step 3, get the data
-    uint8_t buttonStatus = 0;
-    const uint8_t registerToAsk = I2C_REGISTER::IRQ_STATUS_3;
-
-    esp_err_t res = i2c_master_write_read_device(I2C_NUM_0, I2C_ADDR_AXP202, &registerToAsk, 1, &buttonStatus, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
-    if ( ESP_OK != res ) {
-        printf("%s:%d %s() i2c_master_write_read_device ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
-        i2c_driver_delete(I2C_NUM_0);
-        return true;
-    }
-
-
-    // AXP202 irq ack
-    const uint8_t write_buf[2] = { I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK };
-    res = i2c_master_write_to_device(I2C_NUM_0, I2C_ADDR_AXP202, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
-    if ( ESP_OK != res ) {
-        printf("%s:%d %s() i2c_master_write_to_device error: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        this->period = I2C_MASTER_TIMEOUT_MS; // slowdown the next iteration
-        i2c_driver_delete(I2C_NUM_0);
-        return true;
-    }
-    i2cHandler->FreeI2CSession(port);
-
-
     // logic button goes here:
     TickType_t thisEvent = xTaskGetTickCount();
     if ( buttonStatus != lastVal ) { // only if state of button changes

@@ -4,7 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
-SemaphoreHandle_t _debugMutex = xSemaphoreCreateMutex();
+SemaphoreHandle_t printfMutex = xSemaphoreCreateMutex();
 #endif // CONFIG_LUNOKIOT_DEBUG
 
 #include "LunokIoT.hpp"

@@ -64,7 +64,52 @@ namespace LunokIoT {
                 SHORT=2,
                 MASK=3
             };
-            
+            // https://www.tutorialspoint.com/cplusplus/cpp_bitwise_operators.htm
+            //bool IRQ_ENABLE_1_BIT0_RESERVED = false;
+            bool IRQ_ENABLE_1_BIT1_VBUS_LOW = false;
+            bool IRQ_ENABLE_1_BIT2_VBUS_REMOVED = false;
+            bool IRQ_ENABLE_1_BIT3_VBUS_CONNECTED = false;
+            bool IRQ_ENABLE_1_BIT4_VBUS_OVERVOLTAGE = false;
+            bool IRQ_ENABLE_1_BIT5_ACIN_REMOVED = false;
+            bool IRQ_ENABLE_1_BIT6_ACIN_CONNECTED = false;
+            bool IRQ_ENABLE_1_BIT7_ACIN_OVERVOLTAGE = false;
+
+            bool IRQ_ENABLE_2_BIT0_BATT_LOW_TEMP = false;
+            bool IRQ_ENABLE_2_BIT1_BATT_OVERHEAT = false;
+            bool IRQ_ENABLE_2_BIT2_BATT_CHARGED = false;
+            bool IRQ_ENABLE_2_BIT3_BATT_CHARGING = false;
+            bool IRQ_ENABLE_2_BIT4_BATT_EXIT_ACTIVATE = false;
+            bool IRQ_ENABLE_2_BIT5_BATT_ACTIVATE = false;
+            bool IRQ_ENABLE_2_BIT6_BATT_REMOVED = false;
+            bool IRQ_ENABLE_2_BIT6_BATT_CONNECTED = false;
+
+            bool IRQ_ENABLE_3_BIT0_PEK_LONG = false;
+            bool IRQ_ENABLE_3_BIT1_PEK_SHORT = false;
+            bool IRQ_ENABLE_3_BIT2_LDO3_UNDERVOLTAGE = false;
+            bool IRQ_ENABLE_3_BIT3_DC_DC3_UNDERVOLTAGE = false;
+            bool IRQ_ENABLE_3_BIT4_DC_DC2_UNDERVOLTAGE = false;
+            //bool IRQ_ENABLE_3_BIT5_RESERVED = false;
+            bool IRQ_ENABLE_3_BIT6_CHARGE_UNDERVOLTAGE = false;
+            bool IRQ_ENABLE_3_BIT7_INTERNAL_OVERHEAT = false;
+ 
+            bool IRQ_ENABLE_4_BIT0_AXP_UNDERVOLTAGE_LEVEL2 = false;
+            bool IRQ_ENABLE_4_BIT1_AXP_UNDERVOLTAGE_LEVEL1 = false;
+            bool IRQ_ENABLE_4_BIT2_VBUS_SESSION_END = false;
+            bool IRQ_ENABLE_4_BIT3_VBUS_SESSION_AB = false;
+            bool IRQ_ENABLE_4_BIT4_VBUS_INVALID = false;
+            bool IRQ_ENABLE_4_BIT5_VBUS_VALID = false;
+            bool IRQ_ENABLE_4_BIT6_N_OE_SHUTDOWN = false;
+            bool IRQ_ENABLE_4_BIT7_N_OE_STARTUP = false;
+
+            bool IRQ_ENABLE_5_BIT0_GPIO0_INPUT = false;
+            bool IRQ_ENABLE_5_BIT1_GPIO1_INPUT = false;
+            bool IRQ_ENABLE_5_BIT2_GPIO2_INPUT = false;
+            bool IRQ_ENABLE_5_BIT3_GPIO3_INPUT = false;
+            //bool IRQ_ENABLE_5_BIT4_RESERVED = false;
+            bool IRQ_ENABLE_5_BIT5_PEK_PRESS = false;
+            bool IRQ_ENABLE_5_BIT6_PEK_RELEASED = false;
+            bool IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT = false;
+
             enum I2C_REGISTER {
                 // enable IRQ values
                 // default [7~0]=1101 1000
@@ -85,14 +130,16 @@ namespace LunokIoT {
             uint8_t lastVal = PEK_BUTTON::RELEASED;
             TickType_t lastEvent = 0;
             bool warnUserForPowerOff = true;
-
+            
             AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         uint8_t i2caddress=I2C_ADDR_AXP202);
             bool Loop();
             bool ReadStatus();
+            void DescribeStatus(uint8_t status[5]);
             bool Clearbits();
-            intr_handle_t handler; //@TODO why I can't capture int 35?
+            bool StatusChangeActions();
+            intr_handle_t handler;
             // i2c settings
             I2CDriver *i2cHandler;
             i2c_port_t port;
@@ -101,6 +148,7 @@ namespace LunokIoT {
             gpio_num_t scl;
             uint8_t address;
             void Init();
+            SemaphoreHandle_t statusMutex = xSemaphoreCreateMutex();
     };
 
 }

@@ -230,7 +230,7 @@ static int do_i2cdetect_cmd(int argc, char **argv) {
 static void register_i2cchannels(void)
 {
     const esp_console_cmd_t i2cchannels_cmd = {
-        .command = "i2channels",
+        .command = "i2cchannels",
         .help = "Get lunokIoT channel queue information",
         .hint = NULL,
         .func = &do_i2cchannels_cmd,
@@ -549,40 +549,15 @@ bool I2CDriver::Loop() {
     return true;
 }
 
-bool I2CDriver::GetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, uint8_t &value) {
-    esp_err_t res = i2c_master_write_read_device(i2cport, address, &i2cregister, 1, &value, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
-    if ( ESP_OK != res ) {
-        debug_printferror("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
-        return false;
-    }
-    return true;
-}
-
-
-
-bool I2CDriver::SetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, const uint8_t value) {
-    const uint8_t write_buf[2] = { i2cregister, value };
-    esp_err_t res = i2c_master_write_to_device(i2cport, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
-    if ( ESP_OK != res ) {
-        debug_printferror("i2c_master_write_to_device ERROR: %s", esp_err_to_name(res));
-        return false;
-    }
-    if ( value != write_buf[1]) {
-        debug_printferror("ERROR: check readed value '0x%x' isn't the setted: '0x%x'", write_buf[1], value);
-        return false;
-    }
-    return true;
-}
-
 bool I2CDriver::GetSession(uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         lunokiot_i2c_channel_descriptor_t &descriptor) {
     bool found = false; // out of for-loop for get the offset outside
     size_t offset = 0;
     for (;offset<ESP32_I2C_PORTS;offset++) {
-        debug_printf("@DEBUG trying channel: %d", offset);
+        //debug_printf("@DEBUG trying channel: %d", offset);
         if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, 10) ) {
-            debug_printf("@DEBUG channel: %d locked", offset);
+            //debug_printf("@DEBUG channel: %d locked", offset);
             continue; // try next
         }
         // Got the semaphore!
@@ -594,11 +569,11 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
         }
         if ( not theSame ) { // not found equivalence (or free)...
             xSemaphoreGive(channels[offset].useLock); // free lock
-            debug_printf("@DEBUG Channel: %d is not the same", offset);
+            //debug_printf("@DEBUG Channel: %d is not the same", offset);
             continue; // try next
         }
         // yeah! found free or reuse it
-        debug_printf("@DEBUG Channel: %d free for use", offset);
+        //debug_printf("@DEBUG Channel: %d free for use", offset);
         found = true;
         break;
     }
@@ -610,7 +585,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
     }
 
     if ( 0 == channels[offset].frequency ) { // emty ones, fill it and initalize
-        debug_printf("@DEBUG Channel: %d must be initialized", offset);
+        //debug_printf("@DEBUG Channel: %d must be initialized", offset);
         channels[offset].frequency = i2cfrequency;
         channels[offset].scl = i2csclgpio;
         channels[offset].sda = i2csdagpio;
@@ -652,7 +627,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
     }
     channels[offset].lastUsed = xTaskGetTickCount(); // update last use
     descriptor = channels[offset];
-    debug_printf("Obtained i2c channel %d", offset);
+    //debug_printf("Obtained i2c channel %d", offset);
     return true; // at this point the mutex is locked
 
 }
@@ -661,7 +636,7 @@ void I2CDriver::CleanupSessions() {
     size_t offset = 0;
     for (;offset<ESP32_I2C_PORTS;offset++) {
         if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, 10) ) {
-            debug_printf("channel %d in use", offset);
+            //debug_printf("channel %d in use", offset);
             continue; // try next
         }
         TickType_t channelAge = channels[offset].lastUsed;
@@ -682,11 +657,11 @@ void I2CDriver::CleanupSessions() {
             channels[offset].port = offset;
             channels[offset].lastUsed = 0;
             xSemaphoreGive(channels[offset].useLock); // free lock
-            debug_printf("Freed i2c channel %d due unused", offset);
+            //debug_printf("Freed i2c channel %d due unused", offset);
             continue;
         }
         xSemaphoreGive(channels[offset].useLock); // free lock
-        debug_printf("i2c channel %d waiting for action", offset);
+        //debug_printf("i2c channel %d waiting for action", offset);
     }
 }
 bool I2CDriver::FreeSession(lunokiot_i2c_channel_descriptor_t &descriptor) {
@@ -718,7 +693,7 @@ bool I2CDriver::GetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t a
     }
     return true;
 }
-
+/*
 // SemaphoreHandle_t _mutexLock = xSemaphoreCreateMutex();
 bool I2CDriver::GetI2CSession(i2c_port_t i2cport, uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
@@ -765,3 +740,32 @@ bool I2CDriver::FreeI2CSession(i2c_port_t i2cport) {
     xSemaphoreGive(_mutexLock);
     return true;
 }
+
+
+
+bool I2CDriver::GetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, uint8_t &value) {
+    esp_err_t res = i2c_master_write_read_device(i2cport, address, &i2cregister, 1, &value, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
+    if ( ESP_OK != res ) {
+        debug_printferror("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
+        return false;
+    }
+    return true;
+}
+
+
+
+bool I2CDriver::SetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, const uint8_t value) {
+    const uint8_t write_buf[2] = { i2cregister, value };
+    esp_err_t res = i2c_master_write_to_device(i2cport, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
+    if ( ESP_OK != res ) {
+        debug_printferror("i2c_master_write_to_device ERROR: %s", esp_err_to_name(res));
+        return false;
+    }
+    if ( value != write_buf[1]) {
+        debug_printferror("ERROR: check readed value '0x%x' isn't the setted: '0x%x'", write_buf[1], value);
+        return false;
+    }
+    return true;
+}
+
+*/
