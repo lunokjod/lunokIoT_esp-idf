@@ -127,7 +127,7 @@ namespace LunokIoT {
                 // shutdown settings, battery detection and charge led
                 OFF_CONTROL=(0x32), /* bits: [0~1]=DELAY SHUTDOWN (00=128ms, 01=1s, 10=2s, 11=3s),     [2]=output disable timing control (0=disable at same time, 1=contrary to startup timming)
                                         [3]=chrgled (0=controled by charging, 1=controlled by next register at [4~5] offset)          [4~5]=chrgled pin function (00=high resistance, 01=25% 1Hz flicker, 10=25% 4Hz flicker, 11=low level output)
-                                        [6]=batt monitor (0=no,1=yes) [7]=shutdown */
+                                        [6]=batt monitor (0=no,1=yes) [7]=do shutdown */
                 PEK_SETTINGS=(0x36), /* bits: [1~0]=shutdown time (00=4s, 01=6s, 10=8s, 11=10s), [2]=POWEROK delay (0=8ms, 1=64ms), [3]=Automatic shutdown, [5~4]=long press time (00=1s, 01=1.5s, 10=2s, 11=2.5s), [7~6]=START DEAY (00=128ms, 01=3s, 10=1s, 11=2s) */
                 // enable IRQ values
                 // default [7~0]=1101 1000
@@ -155,12 +155,14 @@ namespace LunokIoT {
             AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         uint8_t i2caddress=I2C_ADDR_AXP202);
+            void DumpRegisters();
             bool Loop();
             bool ReadStatus();
             void DescribeStatus(uint8_t status[5]);
             PEK_BUTTON PekButtonState(uint8_t status[5]);
             bool Clearbits();
             bool StatusChangeActions();
+            bool PoolRegisters();
             intr_handle_t handler;
             // i2c settings
             I2CDriver *i2cHandler;

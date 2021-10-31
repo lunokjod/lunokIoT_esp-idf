@@ -46,37 +46,17 @@ static void setupIRQ(void *arg){
 
 using namespace LunokIoT;
 
-void AXP202Driver::Init() {
- 
+
+void AXP202Driver::DumpRegisters() {
+    debug_printf("AXP202 register dump:");
+
     lunokiot_i2c_channel_descriptor_t i2cDescriptor = {};
     bool works = i2cHandler->GetSession(frequency, sda, scl, i2cDescriptor);
-    
-    //i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
-    if ( false == works ) { 
-        debug_printferror("Unable to get i2c session!");
+    if ( not works ) {
+        debug_printferror("Unable to get i2c session");
         return;
     }
-    
-    // enable all status registers and interrupts
-    /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
-    //i2cHandler->SetI2CChar(i2cDescriptor.port, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
-    /* bits: [0]=BATT LOW TEMP,            [1]=BATT OVERHEAT,        [2]=BATT CHARGED,      [3]=BATT CHARGING,       [4]=BATT EXIT ACTIVATE,  [5]=BATT ACTIVATE, [6]=BATT REMOVED,        [7]=BATT CONNECTED    */
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_2, 0b11111111);
-    /* bits: [0]=PEK LONG,                 [1]=PEK SHORT,            [2]=LDO3 UNDERVOLTAGE, [3]=DC-DC3 UNDERVOLTAGE, [4]=DC-DC2 UNDERVOLTAGE, [X]=RESERVED,      [6]=CHARGE UNDERVOLTAGE, [7]=INTERNAL OVERHEAT */
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_3, 0b11111011);
-    /* bits: [0]=AXP UNDERVOLTAGE LEVEL 2, [1]=UNDERVOLTAGE LEVEL 1, [2]=VBUS SESSION END,  [3]=VBUS SESION A/B,     [4]=VBUS INVALID,        [5]=VBUS VALID,    [6]=N_OE SHUTDOWN,       [7]=N_OE STARTUP      */
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_4, 0b11111111);
-    /* bits: [0]=GPIO0 INPUT,              [1]=GPIO1 INPUT,          [2]=GPIO2 INPUT,       [3]=GPIO3 INPUT,         [X]=RESERVED,            [5]=PEK PRESS,     [6]=PEK RELEASED,        [7]=TIMER TIMEOUT     */
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_5, 0b11110111);
 
-    //@DEBUG here goes the timer test
-    debug_printf("@DEBUG REMOVE THIS TEST (Aka TIMER TEST) setted to trigger in 1 minute on the future");
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::TIMER_CONTROL, 0b00000010); // send interrupt in one minute
-
-
-    debug_printf("AXP202 register dump:");
-    
     // Power Input Status register
     uint8_t status = 0x0;
     works = i2cHandler->GetChar(i2cDescriptor, address, I2C_REGISTER::STATUS, status);
@@ -123,7 +103,7 @@ void AXP202Driver::Init() {
     debug_printf("   Battery activate: %s", BATTERY_ACTIVATE?"yes":"no");
     debug_printf("   Battery installed: %s", BATTERY_INSTALLED?"yes":"no");
     debug_printf("   Battery charging: %s", BATTERY_CHARGING?"yes":"no");
-    debug_printf("   AXP temperature status: %s", BATTERY_CHARGING?"OVER TEMPERATURE!":"normal");
+    debug_printf("   AXP temperature status: %s", AXP_OVERTEMP?"OVER TEMPERATURE!":"normal");
 
 //OTG_VBUS
     uint8_t otgVBUS = 0x0;
@@ -164,13 +144,45 @@ void AXP202Driver::Init() {
         i2cHandler->FreeSession(i2cDescriptor);
         return;
     }
-    bool CHARGE_PC = fuelGauge & 0b10000000; // remove last bit to get the value3
+    bool CHARGE_PC = fuelGauge & 0b01111111; // remove last bit to get the value range [0~6]
     bool WORK_MODE = fuelGauge >> 7;
     debug_printf("Fuel Gauge (got 0x%x)", fuelGauge);
     debug_printf("   Percent: %d%%", CHARGE_PC);
     debug_printf("   Work mode: %s", WORK_MODE?"Suspended":"Normal");
+
+    i2cHandler->FreeSession(i2cDescriptor);
+}
+void AXP202Driver::Init() {
  
-   i2cHandler->FreeSession(i2cDescriptor);
+    lunokiot_i2c_channel_descriptor_t i2cDescriptor = {};
+    bool works = i2cHandler->GetSession(frequency, sda, scl, i2cDescriptor);
+    
+    //i2cHandler->GetI2CSession(port, frequency, sda, scl, address);
+    if ( false == works ) { 
+        debug_printferror("Unable to get i2c session!");
+        return;
+    }
+    
+    // enable all status registers and interrupts
+    /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
+    //i2cHandler->SetI2CChar(i2cDescriptor.port, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
+    /* bits: [0]=BATT LOW TEMP,            [1]=BATT OVERHEAT,        [2]=BATT CHARGED,      [3]=BATT CHARGING,       [4]=BATT EXIT ACTIVATE,  [5]=BATT ACTIVATE, [6]=BATT REMOVED,        [7]=BATT CONNECTED    */
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_2, 0b11111111);
+    /* bits: [0]=PEK LONG,                 [1]=PEK SHORT,            [2]=LDO3 UNDERVOLTAGE, [3]=DC-DC3 UNDERVOLTAGE, [4]=DC-DC2 UNDERVOLTAGE, [X]=RESERVED,      [6]=CHARGE UNDERVOLTAGE, [7]=INTERNAL OVERHEAT */
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_3, 0b11111011);
+    /* bits: [0]=AXP UNDERVOLTAGE LEVEL 2, [1]=UNDERVOLTAGE LEVEL 1, [2]=VBUS SESSION END,  [3]=VBUS SESION A/B,     [4]=VBUS INVALID,        [5]=VBUS VALID,    [6]=N_OE SHUTDOWN,       [7]=N_OE STARTUP      */
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_4, 0b11111111);
+    /* bits: [0]=GPIO0 INPUT,              [1]=GPIO1 INPUT,          [2]=GPIO2 INPUT,       [3]=GPIO3 INPUT,         [X]=RESERVED,            [5]=PEK PRESS,     [6]=PEK RELEASED,        [7]=TIMER TIMEOUT     */
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_5, 0b11110111);
+
+    //@DEBUG here goes the timer test
+    debug_printf("@DEBUG REMOVE THIS TEST (Aka TIMER TEST) setted to trigger in 1 minute on the future");
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::TIMER_CONTROL, 0b00000010); // send interrupt in one minute
+    i2cHandler->FreeSession(i2cDescriptor);
+
+    this->DumpRegisters();
+    
 }
 
 AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i2cfrequency, gpio_num_t i2csdagpio, gpio_num_t i2csclgpio, uint8_t i2caddress): 
@@ -187,7 +199,7 @@ AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
     //debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
     
-    this->period = 300;  // time between irq detection
+    this->period = 300;  // time between irq event parse loop
 }
 
 // here the last copy of loop
@@ -554,7 +566,6 @@ bool AXP202Driver::StatusChangeActions() {
         debug_printf(" * PEK Button event: %s press", IRQ_ENABLE_3_BIT1_PEK_SHORT?"short":"long");
         anyChange = true;
     }
-    
     // check timer timeout
     debug_printf("Timer timeout test part");
     if ( IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT ) {
@@ -565,9 +576,21 @@ bool AXP202Driver::StatusChangeActions() {
             i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::TIMER_CONTROL, 0b00000001); // disable timer
             i2cHandler->FreeSession(i2cDescriptor);
             debug_printf("   * Disabled timer (no more timeouts)");
+            anyChange = true;
         }
     }
     debug_printf("\nAXP202 registers interpreted, end of interrupt handling");
+
+
+    debug_printf("@DEBUG test zone");
+    // action to do when LONGPRESS
+    //if ( ( IRQ_ENABLE_3_BIT0_PEK_LONG ) && (IRQ_ENABLE_3_BIT1_PEK_SHORT) ) {
+    if ( ( IRQ_ENABLE_3_BIT0_PEK_LONG ) && (not IRQ_ENABLE_3_BIT1_PEK_SHORT) ) {
+        this->DumpRegisters();
+        anyChange = true;
+    }
+    
+
     return anyChange;
 }
 /*
@@ -581,6 +604,46 @@ bool AXP20X_Class::isPEKLongtPressIRQ()
     return (bool)(_irq[2] & BIT_MASK(0));
 }
 */
+
+bool AXP202Driver::PoolRegisters() {
+    // talk with AXP202
+    lunokiot_i2c_channel_descriptor_t myDescriptor = {};
+    bool works = i2cHandler->GetSession(frequency, sda, scl, myDescriptor);
+    if ( true != works ) {
+        debug_printferror("Unable to start i2c session");
+        return false; // try again next time
+    }
+    // get OFF_CONTROL
+    uint8_t offControlData = 0x0;
+    works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::OFF_CONTROL, offControlData);
+    if ( not works ) {
+        debug_printferror("Unable to get i2c data");
+        return false;
+    }
+    //debug_printf("off control register got 0x%x", offControlData);
+    
+    /*
+    uint8_t delayShutdown = offControlData & 0b00000011;
+    // [0~1]=DELAY SHUTDOWN (00=128ms, 01=1s, 10=2s, 11=3s)
+    debug_printf("delay shutdown 0x%x", delayShutdown);
+    */
+
+    // [2]=output disable timing control (0=disable at same time, 1=contrary to startup timming)
+
+    bool chargeLed = offControlData >> 3;
+    debug_printf("Charger led: %s", chargeLed?"in use by charger":"free to use");
+// shutdown settings, battery detection and charge led
+// bits: 
+// [3]=chrgled (0=controled by charging, 1=controlled by next register at [4~5] offset)
+// [4~5]=chrgled pin function (00=high resistance, 01=25% 1Hz flicker, 10=25% 4Hz flicker, 11=low level output)
+// [6]=batt monitor (0=no,1=yes)
+// [7]=shutdown
+
+    // free i2c
+    i2cHandler->FreeSession(myDescriptor);
+    return true;
+}
+
 // I hate pooling
 bool AXP202Driver::Loop() {
     
@@ -593,10 +656,14 @@ bool AXP202Driver::Loop() {
         this->Clearbits(); // ack received data from AXP 
         return true;
     }
-
-
-
-
+    
+    // TickType_t thisEvent = xTaskGetTickCount();
+    static uint8_t shitCounter = 0;
+    shitCounter++;
+    if ( 0 == (shitCounter % 100) ) {
+        debug_printf("Obtaining AXP202 registers...");
+        this->PoolRegisters();
+    }
 /*
     // logic button goes here:
     TickType_t thisEvent = xTaskGetTickCount();

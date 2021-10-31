@@ -675,7 +675,7 @@ bool I2CDriver::SetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t a
     const uint8_t write_buf[2] = { i2cregister, value };
     esp_err_t res = i2c_master_write_to_device(descriptor.port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
-        debug_printferror("i2c_master_write_to_device ERROR: %s", esp_err_to_name(res));
+        debug_printferror("i2c_master_write_to_device: %s", esp_err_to_name(res));
         return false;
     }
     if ( value != write_buf[1]) {
@@ -688,7 +688,7 @@ bool I2CDriver::SetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t a
 bool I2CDriver::GetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t address, const uint8_t i2cregister, uint8_t &value) {
     esp_err_t res = i2c_master_write_read_device(descriptor.port, address, &i2cregister, 1, &value, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
-        debug_printferror("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
+        debug_printferror("i2c_master_write_read_device: %s", esp_err_to_name(res));
         return false;
     }
     return true;
