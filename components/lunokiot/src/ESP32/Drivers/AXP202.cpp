@@ -31,7 +31,7 @@ static void setupIRQ(void *arg){
     
     gpio_config_t io_conf = {};
     //ESP_ERROR_CHECK(gpio_set_intr_type(AXP202_INT, GPIO_INTR_ANYEDGE));
-    io_conf.intr_type = gpio_int_type_t(GPIO_INTR_NEGEDGE);
+    io_conf.intr_type = gpio_int_type_t(GPIO_INTR_ANYEDGE);
     io_conf.mode = gpio_mode_t(GPIO_MODE_INPUT);
     io_conf.pull_down_en = gpio_pulldown_t(false);
     io_conf.pull_up_en = gpio_pullup_t(false);
@@ -41,7 +41,7 @@ static void setupIRQ(void *arg){
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
     ESP_ERROR_CHECK(gpio_isr_handler_add(AXP202_INT, gpioHandler, (void*)nullptr));
 
-    vTaskDelete(NULL);
+    vTaskDelete(NULL); // kill myself, the only needed data of this task are the core pinned to
 }
 
 using namespace LunokIoT;
@@ -57,7 +57,7 @@ void AXP202Driver::Init() {
         return;
     }
     
-    // enable all status registers
+    // enable all status registers and interrupts
     /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
     //i2cHandler->SetI2CChar(i2cDescriptor.port, address, I2C_REGISTER::IRQ_ENABLE_1, 0b01111111);
@@ -80,11 +80,11 @@ AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
                                         i2cHandler(i2cHandler), port(i2cport), frequency(i2cfrequency), sda(i2csdagpio), scl(i2csclgpio), address(i2caddress) {
     debug_printf("Setup (i2c port: %d, sda=%d scl=%d, addr:%d)", port, sda, scl, address);
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html
-    
+    // install irq handler for AXP202
     xTaskCreate(setupIRQ, "setup irq", 1024 * 2, (void *)this, 10, NULL); // ugly trick to pin the interrupt to core
-    this->Init();
     this->ReadStatus();
     this->Clearbits();
+    this->Init();
 
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
     //debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
@@ -115,11 +115,19 @@ bool AXP202Driver::Clearbits() {
         debug_printferror("Unable to start i2c session");
         return false; // try again later
     }
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, 0b01111111);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, 0b01111111); // zero to reserved
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_2, 0xff);
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, 0b11111011);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, 0b11111011); // zero to reserved
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, 0xff);
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, 0xff);
+
+    /*
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, IRQ_STATUS_CACHE_CURRENT[0]);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_2, IRQ_STATUS_CACHE_CURRENT[1]);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, IRQ_STATUS_CACHE_CURRENT[2]);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, IRQ_STATUS_CACHE_CURRENT[3]);
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, IRQ_STATUS_CACHE_CURRENT[4]);
+    */
 
     // free i2c
     
@@ -130,7 +138,7 @@ bool AXP202Driver::Clearbits() {
 void AXP202Driver::DescribeStatus(uint8_t status[5]=IRQ_STATUS_CACHE_CURRENT) { // https://www.tutorialspoint.com/cplusplus/cpp_bitwise_operators.htm
     // print bit offset table
 //    printf("\nSTATUS  : [0][1][2][3][4][5][6][7]\n");
-    printf("\n          [0][1][2][3][4][5][6][7]\n");
+    printf("          [0][1][2][3][4][5][6][7]\n");
     /*
     if ( pdTRUE != xSemaphoreTake(statusMutex, portMAX_DELAY) ) {
         debug_printferror("Unable to get status mutex");
@@ -364,6 +372,7 @@ bool AXP202Driver::ReadStatus() {
     return true;
 }
 bool AXP202Driver::StatusChangeActions() {
+    debug_printf("Analyse the AXP202 registers to get the current interrupt state");
     bool anyChange = false;
     if ( pdTRUE != xSemaphoreTake(statusMutex, portMAX_DELAY) ) {
         debug_printferror("Unable to get status mutex");
@@ -371,23 +380,25 @@ bool AXP202Driver::StatusChangeActions() {
     }
     // https://en.wikipedia.org/wiki/Bitwise_operations_in_C
     // get diff from status registers
-    uint8_t changesSTEP[5];
+    //uint8_t changesSTEP[5];
     uint8_t changes[5];
     for ( size_t offset = 0; offset<sizeof(IRQ_STATUS_CACHE_CURRENT);offset++) {
-        changesSTEP[offset] = (IRQ_STATUS_CACHE_CURRENT[offset] ^ IRQ_STATUS_CACHE_LAST[offset]);
-        changes[offset] =  (IRQ_STATUS_CACHE_CURRENT[offset] & changesSTEP[offset]);
+        //changesSTEP[offset] = (IRQ_STATUS_CACHE_CURRENT[offset] ^ IRQ_STATUS_CACHE_LAST[offset]);
+        //changes[offset] =  (IRQ_STATUS_CACHE_CURRENT[offset] & changesSTEP[offset]);
+        changes[offset] =  IRQ_STATUS_CACHE_CURRENT[offset];
     };
 
-    xSemaphoreGive(statusMutex);
-    debug_printf("Event flags:");
+    //debug_printf("Events");
     this->DescribeStatus(IRQ_STATUS_CACHE_CURRENT);
+    
+    xSemaphoreGive(statusMutex);
     /*
     debug_printf("=================> IRQ_STATUS_CACHE_LAST:");
     this->DescribeStatus(IRQ_STATUS_CACHE_LAST);
     debug_printf("=================> STEP:");
     this->DescribeStatus(changesSTEP);*/
-    debug_printf("Calculated changed flags:");
-    this->DescribeStatus(changes);
+    //debug_printf("Calculated changed flags:");
+    //this->DescribeStatus(changes);
     
     //IRQ_STATUS_1_CACHE
     //bool IRQ_ENABLE_1_BIT0_RESERVED = false;
@@ -435,28 +446,44 @@ bool AXP202Driver::StatusChangeActions() {
     bool IRQ_ENABLE_5_BIT6_PEK_RELEASED =  changes[4] >>6;
     bool IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT =  changes[4] >>7;
 
-    if ( ( IRQ_ENABLE_3_BIT0_PEK_LONG ) || (IRQ_ENABLE_3_BIT1_PEK_SHORT) ) {
-        debug_printf("Button pressed with event: %s press", IRQ_ENABLE_3_BIT1_PEK_SHORT?"short":"long");
+    // check PEK button
+    debug_printf("PEK button test part");
+    if ( ( IRQ_ENABLE_5_BIT6_PEK_RELEASED ) || ( IRQ_ENABLE_5_BIT5_PEK_PRESS ) ) {
+        debug_printf(" * PEK Button state: %s", IRQ_ENABLE_5_BIT6_PEK_RELEASED?"released":"pressed");
         anyChange = true;
     }
-
+    if ( ( IRQ_ENABLE_3_BIT0_PEK_LONG ) || (IRQ_ENABLE_3_BIT1_PEK_SHORT) ) {
+        debug_printf(" * PEK Button event: %s press", IRQ_ENABLE_3_BIT1_PEK_SHORT?"short":"long");
+        anyChange = true;
+    }
+    
+    debug_printf("AXP202 registers interpreted, end of interrupt handling");
     return anyChange;
 }
+/*
+//#define BIT_MASK(x) (1 << x)
+AXP202Driver::PEK_BUTTON AXP202Driver::PekButtonState(uint8_t status[5]=IRQ_STATUS_CACHE_CURRENT) {
+    return PEK_BUTTON(status[2] & (1 << 1));
+}*/
+/*
+bool AXP20X_Class::isPEKLongtPressIRQ()
+{
+    return (bool)(_irq[2] & BIT_MASK(0));
+}
+*/
 // I hate pooling
 bool AXP202Driver::Loop() {
     
     // no interrupt triggered?, get out!
-    if ( false == axp202Interrupt ) { 
+    if ( true == axp202Interrupt ) { 
+        debug_printf("AXP202 Interrupt received");
+        this->ReadStatus();
+        this->StatusChangeActions();
+        this->Clearbits(); // ack received data
+        // ack interrupt
+        axp202Interrupt = false;
         return true;
     }
-    //debug_printf("INT: %s", axp202Interrupt?"true":"false");
-
-    this->ReadStatus();
-    this->StatusChangeActions();
-    this->Clearbits();
-    // ack interrupt
-    axp202Interrupt = false;
-    return true;
 /*
     // logic button goes here:
     TickType_t thisEvent = xTaskGetTickCount();
@@ -500,6 +527,7 @@ bool AXP202Driver::Loop() {
             warnUserForPowerOff = true;
         }
     }
-    return true;
+    
     */
+   return true;
 }

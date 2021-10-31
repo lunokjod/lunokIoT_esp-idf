@@ -111,6 +111,13 @@ namespace LunokIoT {
             bool IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT = false;
 
             enum I2C_REGISTER {
+                STATUS=(0x00), /* bits: [0]=boot source (0=no ACIN/VBUS, 1=ACIN/VBUS), [1]=shortcircuit ACIN/VBUS on PCB, [2]=battery current direction (0=discharging, 1=charging), [3]=VBUS above VHOLD, [4]=VBUS USABLE, [5]=VBUS presence, [6]=ACIN usable, [7]=ACIN presence */
+                POWER_MODE_CHRG=(0x01), /* bits: [0~1]=RESERVED, [2]=lower charging current, [3]=battery activate, [4]=RESERVED, [5]=BATTERY INSTALLED, [6]=CHARGING, [7]=OVER TEMPERATURE */
+                // shutdown settings, battery detection and charge led
+                OFF_CONTROL=(0x32), /* bits: [0~1]=DELAY SHUTDOWN (00=128ms, 01=1s, 10=2s, 11=3s),     [2]=output disable timing control (0=disable at same time, 1=contrary to startup timming)
+                                        [3]=chrgled (0=controled by charging, 1=controlled by next register at [4~5] offset)          [4~5]=chrgled pin function (00=high resistance, 01=25% 1Hz flicker, 10=25% 4Hz flicker, 11=low level output)
+                                        [6]=batt monitor (0=no,1=yes) [7]=shutdown */
+                PEK_SETTINGS=(0x36), /* bits: [1~0]=shutdown time (00=4s, 01=6s, 10=8s, 11=10s), [2]=POWEROK delay (0=8ms, 1=64ms), [3]=Automatic shutdown, [5~4]=long press time (00=1s, 01=1.5s, 10=2s, 11=2.5s), [7~6]=START DEAY (00=128ms, 01=3s, 10=1s, 11=2s) */
                 // enable IRQ values
                 // default [7~0]=1101 1000
                 IRQ_ENABLE_1=(0x40), /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */
@@ -137,6 +144,7 @@ namespace LunokIoT {
             bool Loop();
             bool ReadStatus();
             void DescribeStatus(uint8_t status[5]);
+            PEK_BUTTON PekButtonState(uint8_t status[5]);
             bool Clearbits();
             bool StatusChangeActions();
             intr_handle_t handler;
