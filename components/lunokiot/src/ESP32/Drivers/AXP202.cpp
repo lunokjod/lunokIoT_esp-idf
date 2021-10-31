@@ -71,9 +71,105 @@ void AXP202Driver::Init() {
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_5, 0b11110111);
 
     //@DEBUG here goes the timer test
-    debug_printf("@DEBUG REMOVE THIS TEST (Aka TIMER TEST)");
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::TIMER_CONTROL, 0b00000010); // one miute on the future?
+    debug_printf("@DEBUG REMOVE THIS TEST (Aka TIMER TEST) setted to trigger in 1 minute on the future");
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::TIMER_CONTROL, 0b00000010); // send interrupt in one minute
 
+
+    debug_printf("AXP202 register dump:");
+    
+    // Power Input Status register
+    uint8_t status = 0x0;
+    works = i2cHandler->GetChar(i2cDescriptor, address, I2C_REGISTER::STATUS, status);
+    if ( !works ) {
+        i2cHandler->FreeSession(i2cDescriptor);
+        return;
+    }
+    bool BOOT_SOURCE = status;
+    bool SHORT_IN_ACIN_VBUS = status >> 1;
+    bool BATTERY_CURRENT_DIRECTION = status >> 2;
+    bool VBUS_ABOVE_VHOLD = status >> 3;
+    bool VBUS_USABLE = status >> 4;
+    bool VBUS_PRESENCE = status >> 5;
+    bool ACIN_USABLE = status >> 6;
+    bool ACIN_PRESENCE = status >> 7;
+    
+    debug_printf("Power Input Status register (got 0x%x)", status);
+    debug_printf("   Boot source: %s", BOOT_SOURCE?"other":"ACIN/VBUS");
+    debug_printf("   Shortcircuit on ACIN/VBUS: %s", SHORT_IN_ACIN_VBUS?"yes":"no");
+    debug_printf("   Battery voltage direction: %s", BATTERY_CURRENT_DIRECTION?"in":"out");
+    debug_printf("   VBUS above VHOLD: %s", VBUS_ABOVE_VHOLD?"true":"false");
+    debug_printf("   VBUS usable: %s", VBUS_USABLE?"true":"false");
+    debug_printf("   VBUS presence: %s", VBUS_PRESENCE?"true":"false");
+    debug_printf("   ACIN usable: %s", ACIN_USABLE?"true":"false");
+    debug_printf("   ACIN presence: %s", ACIN_PRESENCE?"true":"false");
+
+    
+//POWER_MODE_CHRG
+    uint8_t powerMode = 0x0;
+    works = i2cHandler->GetChar(i2cDescriptor, address, I2C_REGISTER::POWER_MODE_CHRG, powerMode);
+    if ( !works ) {
+        i2cHandler->FreeSession(i2cDescriptor);
+        return;
+    }
+    // 0~1 reserved
+    bool LOWER_CHARGING_CURRENT = powerMode >> 2;
+    bool BATTERY_ACTIVATE = powerMode >> 3;
+    // 4 reserved
+    bool BATTERY_INSTALLED = powerMode >> 5;
+    bool BATTERY_CHARGING = powerMode >> 6;
+    bool AXP_OVERTEMP = powerMode >> 7;
+    debug_printf("Power Working Mode and Charge Status Indication (got 0x%x)", powerMode);
+    debug_printf("   Low charging current: %s", LOWER_CHARGING_CURRENT?"yes":"no");
+    debug_printf("   Battery activate: %s", BATTERY_ACTIVATE?"yes":"no");
+    debug_printf("   Battery installed: %s", BATTERY_INSTALLED?"yes":"no");
+    debug_printf("   Battery charging: %s", BATTERY_CHARGING?"yes":"no");
+    debug_printf("   AXP temperature status: %s", BATTERY_CHARGING?"OVER TEMPERATURE!":"normal");
+
+//OTG_VBUS
+    uint8_t otgVBUS = 0x0;
+    works = i2cHandler->GetChar(i2cDescriptor, address, I2C_REGISTER::OTG_VBUS, otgVBUS);
+    if ( !works ) {
+        i2cHandler->FreeSession(i2cDescriptor);
+        return;
+    }
+    bool SESSION_END = otgVBUS;
+    bool VBUS_AB_SESSION = otgVBUS >> 1;
+    bool VBUS_VALID = otgVBUS >> 2;
+    debug_printf("USB OTG VBUS Status Indication (got 0x%x)", otgVBUS);
+    debug_printf("   Session end: %s", SESSION_END?"valid":"invalid");
+    debug_printf("   VBUS A/B session: %s", VBUS_AB_SESSION?"yes":"no");
+    debug_printf("   VBUS valid: %s", VBUS_VALID?"yes":"no");
+
+//Coulomb Counter Control
+    uint8_t coloumbControl = 0x0;
+    works = i2cHandler->GetChar(i2cDescriptor, address, I2C_REGISTER::COLOUMB_COUNTER, coloumbControl);
+    if ( !works ) {
+        i2cHandler->FreeSession(i2cDescriptor);
+        return;
+    }
+    bool DECRYPTION_DONE = coloumbControl;
+    bool DECRYPTION_START = coloumbControl >> 1;
+    bool PAUSE_COLOUMB_COUNTER = coloumbControl >> 6;
+    bool ENABLE_COLOUMB_COUNTER = coloumbControl >> 7;
+    debug_printf("Coloumb counter (got 0x%x)", coloumbControl);
+    debug_printf("   Decryption done: %s", DECRYPTION_DONE?"yes":"no");
+    debug_printf("   Decryption in progress: %s", DECRYPTION_START?"yes":"no");
+    debug_printf("   Counter paused: %s", PAUSE_COLOUMB_COUNTER?"yes":"no");
+    debug_printf("   Counter enabled: %s", ENABLE_COLOUMB_COUNTER?"yes":"no");
+
+// FUEL_GAUGE=(0xB9) // bits: [6~0]=charge percentage, [7]=work mode (0=normal, 1=suspended)
+   uint8_t fuelGauge = 0x0;
+    works = i2cHandler->GetChar(i2cDescriptor, address, I2C_REGISTER::FUEL_GAUGE, fuelGauge);
+    if ( !works ) {
+        i2cHandler->FreeSession(i2cDescriptor);
+        return;
+    }
+    bool CHARGE_PC = fuelGauge & 0b10000000; // remove last bit to get the value3
+    bool WORK_MODE = fuelGauge >> 7;
+    debug_printf("Fuel Gauge (got 0x%x)", fuelGauge);
+    debug_printf("   Percent: %d%%", CHARGE_PC);
+    debug_printf("   Work mode: %s", WORK_MODE?"Suspended":"Normal");
+ 
    i2cHandler->FreeSession(i2cDescriptor);
 }
 
@@ -493,11 +589,14 @@ bool AXP202Driver::Loop() {
         debug_printf("AXP202 Interrupt received");
         this->ReadStatus();
         this->StatusChangeActions();
-        this->Clearbits(); // ack received data
-        // ack interrupt
-        axp202Interrupt = false;
+        axp202Interrupt = false; // ack interrupt 
+        this->Clearbits(); // ack received data from AXP 
         return true;
     }
+
+
+
+
 /*
     // logic button goes here:
     TickType_t thisEvent = xTaskGetTickCount();
