@@ -130,7 +130,8 @@ namespace LunokIoT {
                 IRQ_STATUS_2=(0x49),
                 IRQ_STATUS_3=(0x4A), /* bits: [0]=PEK LONG, [1]=PEK SHORT */
                 IRQ_STATUS_4=(0x4B),
-                IRQ_STATUS_5=(0x4C)
+                IRQ_STATUS_5=(0x4C),
+                TIMER_CONTROL=(0x8A) /* bits: [0~6]=Minutes untill timeout, [7]=timer timeout */
             };
         public:
             // PEK settings

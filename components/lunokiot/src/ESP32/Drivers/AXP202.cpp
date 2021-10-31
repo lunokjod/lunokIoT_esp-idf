@@ -70,9 +70,11 @@ void AXP202Driver::Init() {
     /* bits: [0]=GPIO0 INPUT,              [1]=GPIO1 INPUT,          [2]=GPIO2 INPUT,       [3]=GPIO3 INPUT,         [X]=RESERVED,            [5]=PEK PRESS,     [6]=PEK RELEASED,        [7]=TIMER TIMEOUT     */
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_ENABLE_5, 0b11110111);
 
-   //i2cHandler->FreeI2CSession(port);
+    //@DEBUG here goes the timer test
+    debug_printf("@DEBUG REMOVE THIS TEST (Aka TIMER TEST)");
+    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::TIMER_CONTROL, 0b00000010); // one miute on the future?
+
    i2cHandler->FreeSession(i2cDescriptor);
-    // @TODO is possible to do a interrupt handling?
 }
 
 AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i2cfrequency, gpio_num_t i2csdagpio, gpio_num_t i2csclgpio, uint8_t i2caddress): 
@@ -372,7 +374,7 @@ bool AXP202Driver::ReadStatus() {
     return true;
 }
 bool AXP202Driver::StatusChangeActions() {
-    debug_printf("Analyse the AXP202 registers to get the current interrupt state");
+    debug_printf("\nAnalyse the AXP202 registers to get the current interrupt state");
     bool anyChange = false;
     if ( pdTRUE != xSemaphoreTake(statusMutex, portMAX_DELAY) ) {
         debug_printferror("Unable to get status mutex");
@@ -457,7 +459,19 @@ bool AXP202Driver::StatusChangeActions() {
         anyChange = true;
     }
     
-    debug_printf("AXP202 registers interpreted, end of interrupt handling");
+    // check timer timeout
+    debug_printf("Timer timeout test part");
+    if ( IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT ) {
+        debug_printf(" * Get Timer timeout");
+        lunokiot_i2c_channel_descriptor_t i2cDescriptor = {};
+        bool works = i2cHandler->GetSession(frequency, sda, scl, i2cDescriptor);
+        if ( works ) {
+            i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::TIMER_CONTROL, 0b00000001); // disable timer
+            i2cHandler->FreeSession(i2cDescriptor);
+            debug_printf("   * Disabled timer (no more timeouts)");
+        }
+    }
+    debug_printf("\nAXP202 registers interpreted, end of interrupt handling");
     return anyChange;
 }
 /*
