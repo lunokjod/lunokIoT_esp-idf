@@ -159,12 +159,11 @@ static int do_i2cchannels_cmd(int argc, char **argv) {
     size_t offset = 0;
     for (;offset<ESP32_I2C_PORTS;offset++) {
         debug_printf("channel: %d", offset);
-        if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, 10) ) {
+        if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS) ) {
             debug_printf("channel: %d is in use", offset);
-            //continue; // try next
-        } else {
-            xSemaphoreGive(channels[offset].useLock);
+            continue; // try next
         }
+        debug_printf("  channel references %d", channels[offset].referenceCounter );
         debug_printf("  channel port %d", channels[offset].port );
         debug_printf("  channel frequency %d", channels[offset].frequency );
         debug_printf("  channel sda %d", channels[offset].sda );
@@ -174,6 +173,7 @@ static int do_i2cchannels_cmd(int argc, char **argv) {
             lastUsed = xTaskGetTickCount() - channels[offset].lastUsed;;
         }
         debug_printf("  channel last use %dms", lastUsed );
+        xSemaphoreGive(channels[offset].useLock);
     }
     return 0;
 }
@@ -554,6 +554,68 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
     bool found = false;
     size_t offset = 0; // out of for-loop for get the offset outside
     for (;offset<ESP32_I2C_PORTS;offset++) {
+        // try to lock 
+        if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS) ) {
+            // this entry is in use, try the next
+            continue;
+        }
+
+        lunokiot_i2c_channel_descriptor_t currentChannel = channels[offset];
+
+        // check if is free
+        if ( 0 == currentChannel.lastUsed ) {
+            // free slot found, initialize it!
+            // i2c Step 1, configure:
+            i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000
+                .mode = I2C_MODE_MASTER,
+                .sda_io_num = (int)i2csdagpio,
+                .scl_io_num = (int)i2csclgpio,
+                .sda_pullup_en = GPIO_PULLUP_ENABLE,
+                .scl_pullup_en = GPIO_PULLUP_ENABLE,
+                .master {
+                    .clk_speed = i2cfrequency
+                },
+                .clk_flags = 0
+            };
+            esp_err_t res = i2c_param_config(offset, &i2cConf);
+            if ( ESP_OK != res ) {
+                debug_printferror("i2c_param_config: %s\n",esp_err_to_name(res));
+                break; // fatal, stop searching
+            }
+            // Step 2, install driver:
+            res = i2c_driver_install(offset, i2cConf.mode , I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+            if ( ESP_OK != res ) {
+                debug_printferror("i2c_driver_install: %s\n",esp_err_to_name(res));
+                break; // fatal, stop searching
+            }
+            // i2c initialized, fill the descriptor and push to the caller
+            channels[offset].frequency = i2cfrequency;
+            channels[offset].scl = i2csclgpio;
+            channels[offset].sda = i2csdagpio;
+            found = true;
+            break; // Yeah! is the NEW one!
+        }
+        // check if is the same
+        if ( currentChannel.frequency != i2cfrequency ) { continue; }
+        if ( currentChannel.sda != i2csdagpio ) { continue; }
+        if ( currentChannel.scl != i2csclgpio ) { continue; }
+        // seems be the REUSED one
+        found = true;
+        break;
+    }
+    if ( found ) {
+        channels[offset].referenceCounter++;
+        descriptor = channels[offset]; // return to the caller
+        channels[offset].lastUsed = xTaskGetTickCount(); // update last use
+        xSemaphoreGive(channels[offset].useLock); // free lock
+    } else {
+        descriptor = {}; // destroy the caller descriptor
+    }
+    return found;
+    /*
+    bool found = false;
+    size_t offset = 0; // out of for-loop for get the offset outside
+    for (;offset<ESP32_I2C_PORTS;offset++) {
         //debug_printf("@DEBUG trying channel: %d", offset);
         if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, 10) ) {
             //debug_printf("@DEBUG channel: %d locked", offset);
@@ -628,6 +690,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
     descriptor = channels[offset];
     //debug_printf("Obtained i2c channel %d", offset);
     return true; // at this point the mutex mark in use, must call FreeSession
+    */
 
 }
 void I2CDriver::CleanupSessions() {
@@ -638,58 +701,83 @@ void I2CDriver::CleanupSessions() {
             //debug_printf("channel %d in use", offset);
             continue; // try next
         }
-        TickType_t channelAge = channels[offset].lastUsed;
-        if ( 0 == channelAge ) {
+        if ( 0 != channels[offset].referenceCounter ) {
+            // this channel is in use (continues referenced) ignore it
             xSemaphoreGive(channels[offset].useLock); // free lock
             continue;
         }
-        TickType_t deadLine = channelAge + ESP32_I2C_FREE_TIMEOUT;
+        TickType_t channelAge = channels[offset].lastUsed;
+        if ( 0 == channelAge ) { // the channel is free, ignore it
+            xSemaphoreGive(channels[offset].useLock); // set it free to use
+            continue;
+        }
+        TickType_t deadLine = channelAge + ESP32_I2C_FREE_TIMEOUT; // lifetime due last effective comms
         TickType_t now = xTaskGetTickCount();
-        if ( deadLine < now ) {
+        if ( deadLine < now ) { // this channel is in silence too many time
             esp_err_t res = i2c_driver_delete(channels[offset].port);
             if ( ESP_OK != res ) {
-                debug_printferror("i2c_driver_delete ERROR: %s\n", esp_err_to_name(res));
+                debug_printferror("i2c_driver_delete: %s\n", esp_err_to_name(res));
             }
             channels[offset].frequency = 0;
             channels[offset].scl = gpio_num_t(0);
             channels[offset].sda = gpio_num_t(0);
             channels[offset].port = offset;
             channels[offset].lastUsed = 0;
-            xSemaphoreGive(channels[offset].useLock); // free lock
-            //debug_printf("Freed i2c channel %d due unused", offset);
-            continue;
+            channels[offset].referenceCounter = 0;
+            // channel freed and ready to new adventures
+            //debug_printf("channel %d freed tue timeout", offset);
         }
         xSemaphoreGive(channels[offset].useLock); // free lock
         //debug_printf("i2c channel %d waiting for action", offset);
     }
 }
 bool I2CDriver::FreeSession(lunokiot_i2c_channel_descriptor_t &descriptor) {
-    descriptor.lastUsed = xTaskGetTickCount(); // update timeout
+    if ( pdTRUE != xSemaphoreTake(descriptor.useLock, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS) ) {
+        debug_printferror("Unable to aquire the lock");
+        return false;
+    }
+    channels[descriptor.port].lastUsed = xTaskGetTickCount(); // update timeout
+    channels[descriptor.port].referenceCounter--;
     xSemaphoreGive(descriptor.useLock);
     this->CleanupSessions();
     return true;
 }
 
 bool I2CDriver::SetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t address, const uint8_t i2cregister, const uint8_t value) {
+    if ( pdTRUE != xSemaphoreTake(descriptor.useLock, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS) ) {
+        debug_printferror("Unable to aquire the lock");
+        return false;
+    }
     const uint8_t write_buf[2] = { i2cregister, value };
     esp_err_t res = i2c_master_write_to_device(descriptor.port, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         debug_printferror("i2c_master_write_to_device: %s", esp_err_to_name(res));
+        xSemaphoreGive(descriptor.useLock); // free lock
         return false;
     }
     if ( value != write_buf[1]) {
         debug_printferror("check readed value failed '0x%x' isn't the setted: '0x%x'", write_buf[1], value);
+        xSemaphoreGive(descriptor.useLock); // free lock
         return false;
     }
+    descriptor.lastUsed = xTaskGetTickCount(); // update timeout
+    xSemaphoreGive(descriptor.useLock); // free lock
     return true;
 }
 
 bool I2CDriver::GetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t address, const uint8_t i2cregister, uint8_t &value) {
+    if ( pdTRUE != xSemaphoreTake(descriptor.useLock, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS) ) {
+        debug_printferror("Unable to aquire the lock");
+        return false;
+    }
     esp_err_t res = i2c_master_write_read_device(descriptor.port, address, &i2cregister, 1, &value, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         debug_printferror("i2c_master_write_read_device: %s", esp_err_to_name(res));
         do_i2cchannels_cmd(0, nullptr);
+        xSemaphoreGive(descriptor.useLock); // free lock
         return false;
     }
+    descriptor.lastUsed = xTaskGetTickCount(); // update timeout
+    xSemaphoreGive(descriptor.useLock); // free lock
     return true;
 }
