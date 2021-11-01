@@ -11,7 +11,7 @@
 #include "base/I2CDatabase.hpp"
 
 #define ESP32_I2C_PORTS 2
-#define ESP32_I2C_FREE_TIMEOUT 1000;
+#define ESP32_I2C_FREE_TIMEOUT 3000;
 
 // channel descriptors, see GetSession
 lunokiot_i2c_channel_descriptor_t channels[ESP32_I2C_PORTS] = {};
@@ -539,6 +539,7 @@ I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", 1000) {
 
     // set mutex in all channels
     for (size_t offset = 0;offset<ESP32_I2C_PORTS;offset++) {
+        channels[offset].port = offset;
         channels[offset].useLock =  xSemaphoreCreateMutex();
     }
 }
@@ -612,86 +613,6 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
         descriptor = {}; // destroy the caller descriptor
     }
     return found;
-    /*
-    bool found = false;
-    size_t offset = 0; // out of for-loop for get the offset outside
-    for (;offset<ESP32_I2C_PORTS;offset++) {
-        //debug_printf("@DEBUG trying channel: %d", offset);
-        if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, 10) ) {
-            //debug_printf("@DEBUG channel: %d locked", offset);
-            continue; // try next
-        }
-        // Got the semaphore!
-        bool theSame = true; // be optimistic :)
-        if ( 0 != channels[offset].frequency ) { // maybe not the same, but is free!!!
-            if ( channels[offset].frequency != i2cfrequency ) { theSame = false; }
-            else if ( channels[offset].sda != i2csdagpio ) { theSame = false; }
-            else if ( channels[offset].scl != i2csclgpio ) { theSame = false; }
-        }
-        if ( not theSame ) { // not found equivalence (or free)...
-            xSemaphoreGive(channels[offset].useLock); // free lock
-            //debug_printf("@DEBUG Channel: %d is not the same", offset);
-            continue; // try next
-        }
-        // yeah! one found free or reusable
-        //debug_printf("@DEBUG Channel: %d free for use", offset);
-        found = true;
-        break;
-    }
-    // loop all the channels and any is free, time to do bad news....
-    if ( not found ) {
-        descriptor = {};
-        debug_printferror("No free descriptors! please wait a while");
-        return false;  // no free descriptors!!!
-    }
-
-    if ( 0 == channels[offset].frequency ) { // empty ones, fill it and initalize
-        //debug_printf("@DEBUG Channel: %d must be initialized", offset);
-        channels[offset].frequency = i2cfrequency;
-        channels[offset].scl = i2csclgpio;
-        channels[offset].sda = i2csdagpio;
-        channels[offset].port = offset;
-        // i2c Step 1, configure:
-        i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000
-            .mode = I2C_MODE_MASTER,
-            .sda_io_num = (int)channels[offset].sda,
-            .scl_io_num = (int)channels[offset].scl,
-            .sda_pullup_en = GPIO_PULLUP_ENABLE,
-            .scl_pullup_en = GPIO_PULLUP_ENABLE,
-            .master {
-                .clk_speed = channels[offset].frequency
-            },
-            .clk_flags = 0
-        };
-        bool initDone = true;
-        esp_err_t res = i2c_param_config(channels[offset].port, &i2cConf);
-        if ( ESP_OK != res ) {
-            debug_printferror("i2c_param_config: %s\n",esp_err_to_name(res));
-            initDone = false;
-        }
-        // Step 2, install driver:
-        res = i2c_driver_install(channels[offset].port, i2cConf.mode , I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-        if ( ESP_OK != res ) {
-            debug_printferror("i2c_driver_install: %s\n",esp_err_to_name(res));
-            initDone = false;
-        }
-        // unable to start i2c, destroy descriptor
-        if ( not initDone ) {
-            channels[offset].frequency = 0;
-            channels[offset].scl = gpio_num_t(0);
-            channels[offset].sda = gpio_num_t(0);
-            channels[offset].port = offset;
-            xSemaphoreGive(channels[offset].useLock); // free lock
-            debug_printferror("Unable to init new descriptor");
-            return false;
-        }
-    }
-    channels[offset].lastUsed = xTaskGetTickCount(); // update last use
-    descriptor = channels[offset];
-    //debug_printf("Obtained i2c channel %d", offset);
-    return true; // at this point the mutex mark in use, must call FreeSession
-    */
-
 }
 void I2CDriver::CleanupSessions() {
     // iterate to close old unused descriptors

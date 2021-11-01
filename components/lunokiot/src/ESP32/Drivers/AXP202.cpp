@@ -192,33 +192,36 @@ AXP202Driver::AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i
     // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/i2c.html
     // install irq handler for AXP202
     xTaskCreate(setupIRQ, "setup irq", 1024 * 2, (void *)this, 10, NULL); // ugly trick to pin the interrupt to core
-    this->ReadStatus();
-    this->Clearbits();
+    this->ReadStatusBits();
+    this->ClearStatusBits();
+
     this->Init();
 
     //@NOTE dummy message, this code must be moved to i2cButtonDriver, bitmask is filter i2c response to get button bool status (pressed/released)
     //debug_printf("Button Setup (i2c reg=0x%x bitmask=0x%x)", I2C_REGISTER::IRQ_STATUS_3, PEK_BUTTON::MASK);
     
-    this->period = 300;  // time between irq event parse loop
+    this->period = 300;  // time between handle events
+
+    uint8_t data[12];
+    bool works = this->GetPersistentData(&data);
+    if ( works ) {
+        printf("AXP202 Data Cache (i2c reg: [0x04~0x0f]) contains: [");
+        uint8_t offset=0;
+        for(;offset<11;offset++) {
+            printf("%02x ", data[offset]);
+        }
+        //offset++;
+        printf("%02x] (%d byte)\n", data[offset], offset+1);
+    }
+    //uint8_t dataSet[12] = { 0xca, 0xca, 0x0, 0xba, 0xdb, 0xab, 0xe0, 0xff, 0x11, 0x22, 0x33, 0x69 };
+    //this->PutPersistentData(&dataSet);
 }
 
-// here the last copy of loop
+// The last copy of status registers from i2c
 uint8_t IRQ_STATUS_CACHE_LAST[] = { 0x0, 0x0, 0x0, 0x0, 0x0 };
 uint8_t IRQ_STATUS_CACHE_CURRENT[] = { 0x0, 0x0, 0x0, 0x0, 0x0 };
-/*
-uint8_t IRQ_STATUS_2_CACHE = 0x0;
-uint8_t IRQ_STATUS_3_CACHE = 0x0;
-uint8_t IRQ_STATUS_4_CACHE = 0x0;
-uint8_t IRQ_STATUS_5_CACHE = 0x0;
 
-uint8_t IRQ_STATUS_1_CACHE = 0x0;
-uint8_t IRQ_STATUS_2_CACHE = 0x0;
-uint8_t IRQ_STATUS_3_CACHE = 0x0;
-uint8_t IRQ_STATUS_4_CACHE = 0x0;
-uint8_t IRQ_STATUS_5_CACHE = 0x0;
-*/
-
-bool AXP202Driver::Clearbits() {
+bool AXP202Driver::ClearStatusBits() {
     lunokiot_i2c_channel_descriptor_t i2cDescriptor = {};
     bool works = i2cHandler->GetSession(frequency, sda, scl, i2cDescriptor);
     if ( true != works ) {
@@ -231,17 +234,6 @@ bool AXP202Driver::Clearbits() {
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, 0xff);
     i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, 0xff);
 
-    /*
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_1, IRQ_STATUS_CACHE_CURRENT[0]);
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_2, IRQ_STATUS_CACHE_CURRENT[1]);
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_3, IRQ_STATUS_CACHE_CURRENT[2]);
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_4, IRQ_STATUS_CACHE_CURRENT[3]);
-    i2cHandler->SetChar(i2cDescriptor, address, I2C_REGISTER::IRQ_STATUS_5, IRQ_STATUS_CACHE_CURRENT[4]);
-    */
-
-    // free i2c
-    
-    //i2cHandler->FreeI2CSession(port);
     i2cHandler->FreeSession(i2cDescriptor);
     return true;
 }
@@ -406,15 +398,50 @@ void AXP202Driver::DescribeStatus(uint8_t status[5]=IRQ_STATUS_CACHE_CURRENT) { 
 }
 
 
-bool AXP202Driver::GetData(char (&data)[12]) {
-    return false;
+bool AXP202Driver::GetPersistentData(uint8_t (*data)[12]) {
+    lunokiot_i2c_channel_descriptor_t myDescriptor = {};
+    bool works = i2cHandler->GetSession(frequency, sda, scl, myDescriptor);
+    if ( true != works ) {
+        debug_printferror("Unable to start i2c session");
+        return false;
+    }
+
+    for(uint8_t offset=DATA_CACHE0;offset<=DATA_CACHE11;offset++) {
+        uint8_t obtainedData = 0x0;
+        works = i2cHandler->GetChar(myDescriptor, address, offset, obtainedData);
+        if ( not works ) {
+            debug_printferror("Unable to get i2c data");
+            return false;
+        }
+        //debug_printf("Offset %d Data: %x", offset-DATA_CACHE0, obtainedData);
+        (*data)[offset-DATA_CACHE0] = obtainedData;
+    }
+    i2cHandler->FreeSession(myDescriptor);
+    return true;
 }
 
-bool AXP202Driver::SaveData(char *data[12]) {
-    return false;
+bool AXP202Driver::PutPersistentData(uint8_t (*data)[12]) {
+    lunokiot_i2c_channel_descriptor_t myDescriptor = {};
+    bool works = i2cHandler->GetSession(frequency, sda, scl, myDescriptor);
+    if ( true != works ) {
+        debug_printferror("Unable to start i2c session");
+        return false;
+    }
+
+    for(uint8_t offset=DATA_CACHE0;offset<=DATA_CACHE11;offset++) {
+        uint8_t dataToSet = (*data)[offset-DATA_CACHE0];
+        debug_printf("Data %d send: 0x%x", offset-DATA_CACHE0, dataToSet);
+        works = i2cHandler->SetChar(myDescriptor, address, offset, dataToSet);
+        if ( not works ) {
+            debug_printferror("Unable to set i2c data");
+            return false;
+        }
+    }
+    i2cHandler->FreeSession(myDescriptor);
+    return true;
 }
 
-bool AXP202Driver::ReadStatus() {
+bool AXP202Driver::ReadStatusBits() {
     // talk with AXP202
     lunokiot_i2c_channel_descriptor_t myDescriptor = {};
     bool works = i2cHandler->GetSession(frequency, sda, scl, myDescriptor);
@@ -501,7 +528,7 @@ bool AXP202Driver::StatusChangeActions() {
     // https://en.wikipedia.org/wiki/Bitwise_operations_in_C
     // get diff from status registers
     //uint8_t changesSTEP[5];
-    uint8_t changes[5];
+    uint8_t changes[sizeof(IRQ_STATUS_CACHE_CURRENT)];
     for ( size_t offset = 0; offset<sizeof(IRQ_STATUS_CACHE_CURRENT);offset++) {
         //changesSTEP[offset] = (IRQ_STATUS_CACHE_CURRENT[offset] ^ IRQ_STATUS_CACHE_LAST[offset]);
         //changes[offset] =  (IRQ_STATUS_CACHE_CURRENT[offset] & changesSTEP[offset]);
@@ -614,7 +641,7 @@ bool AXP20X_Class::isPEKLongtPressIRQ()
 }
 */
 
-bool AXP202Driver::PoolRegisters() {
+bool AXP202Driver::PollRegisters() {
     // talk with AXP202
     lunokiot_i2c_channel_descriptor_t myDescriptor = {};
     bool works = i2cHandler->GetSession(frequency, sda, scl, myDescriptor);
@@ -622,13 +649,32 @@ bool AXP202Driver::PoolRegisters() {
         debug_printferror("Unable to start i2c session");
         return false; // try again next time
     }
+
+    // iterate whole registers
+    for ( uint8_t offset=0; offset != I2C_REGISTER::_SIZE; offset++ ) {
+        uint8_t registerData = 0x0;
+        works = i2cHandler->GetChar(myDescriptor, address, offset, registerData);
+        if ( not works ) {
+            debug_printferror("i2c register offset: 0x%x (read error)", offset);
+            continue;
+        }
+        // see the register output
+        //debug_printf("Register offset: 0x%x data: 0x%x", offset, registerData);
+        // this->DescribeStatus(&registerData);
+    }
+
+
+
+    /*
     // get OFF_CONTROL
     uint8_t offControlData = 0x0;
     works = i2cHandler->GetChar(myDescriptor, address, I2C_REGISTER::OFF_CONTROL, offControlData);
     if ( not works ) {
         debug_printferror("Unable to get i2c data");
         return false;
-    }
+    }*/
+
+
     //debug_printf("off control register got 0x%x", offControlData);
     
     /*
@@ -664,19 +710,18 @@ bool AXP202Driver::Loop() {
     // have pending to read interrupts?
     if ( true == axp202Interrupt ) { 
         debug_printf("AXP202 Interrupt received");
-        this->ReadStatus(); // get status data
+        this->ReadStatusBits(); // get status data snapshoot
         this->StatusChangeActions(); // take decisions with the changes
-        this->Clearbits(); // ack received data from AXP
+        this->ClearStatusBits(); // ack received data from AXP
         axp202Interrupt = false; // ack interrupt 
     }
 
     // is time to refresh all registers?
-    static TickType_t nextPool = 0; // force first refresh
-    if ( nextPool <  xTaskGetTickCount() ) {
+    static TickType_t nextPoll = 0; // force first refresh
+    if ( nextPoll <  xTaskGetTickCount() ) {
         //debug_printf("Obtaining AXP202 registers...");
-        this->PoolRegisters();
-        nextPool = xTaskGetTickCount() + APX202POOL_TIME_MS;
+        this->PollRegisters();
+        nextPoll = xTaskGetTickCount() + APX202POLL_TIME_MS;
     }
-
    return true;
 }

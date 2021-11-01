@@ -9,7 +9,7 @@
 #include "base/I2CDatabase.hpp"
 #include "ESP32/Drivers/I2C.hpp"
 
-#define APX202POOL_TIME_MS 5000
+#define APX202POLL_TIME_MS 5000
 
 // https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/src/board/twatch2020_v3.h
 #define TFT_WIDTH                   (240)
@@ -162,30 +162,32 @@ namespace LunokIoT {
                 IRQ_STATUS_5=(0x4C),
                 TIMER_CONTROL=(0x8A), /* bits: [0~6]=Minutes untill timeout, [7]=timer timeout event */
                 COLOUMB_COUNTER=(0xB8), /* bits: [0]=decryption finished (1=yes), [1]=decrypt started, [4~2]=RESERVED, [5]=CLEAR COUNTER, [6]=PAUSE COUNTER, [7]=ENABLE COUNTER */
-                FUEL_GAUGE=(0xB9) /* bits: [6~0]=charge percentage, [7]=work mode (0=normal, 1=suspended) */
+                FUEL_GAUGE=(0xB9), /* bits: [6~0]=charge percentage, [7]=work mode (0=normal, 1=suspended) */
+                _SIZE // isn't real register, used to get the enum max value
             };
         public:
-            bool GetData(char (&data)[12]);
-            bool SaveData(char *data[12]);
-            //SaveData/GetData
+            // access to persistent memory of AXP202
+            bool GetPersistentData(uint8_t (*data)[12]);
+            bool PutPersistentData(uint8_t (*data)[12]);
+            
 
-
+            /*
             // PEK settings
             uint8_t lastVal = PEK_BUTTON::RELEASED;
             TickType_t lastEvent = 0;
             bool warnUserForPowerOff = true;
-            
+            */
             AXP202Driver(I2CDriver *i2cHandler, i2c_port_t i2cport, uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         uint8_t i2caddress=I2C_ADDR_AXP202);
             void DumpRegisters();
             bool Loop();
-            bool ReadStatus();
+            bool ReadStatusBits();
+            bool ClearStatusBits();
             void DescribeStatus(uint8_t status[5]);
             PEK_BUTTON PekButtonState(uint8_t status[5]);
-            bool Clearbits();
             bool StatusChangeActions();
-            bool PoolRegisters();
+            bool PollRegisters();
             intr_handle_t handler;
             // i2c settings
             I2CDriver *i2cHandler;
