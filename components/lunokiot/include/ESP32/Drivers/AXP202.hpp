@@ -9,6 +9,8 @@
 #include "base/I2CDatabase.hpp"
 #include "ESP32/Drivers/I2C.hpp"
 
+#define APX202POOL_TIME_MS 5000
+
 // https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library/blob/master/src/board/twatch2020_v3.h
 #define TFT_WIDTH                   (240)
 #define TFT_HEIGHT                  (240)
@@ -115,20 +117,36 @@ namespace LunokIoT {
                 STATUS=(0x00), /* bits: [0]=boot source (0=no ACIN/VBUS, 1=ACIN/VBUS), [1]=shortcircuit ACIN/VBUS on PCB, [2]=battery current direction (0=discharging, 1=charging), [3]=VBUS above VHOLD, [4]=VBUS USABLE, [5]=VBUS presence, [6]=ACIN usable, [7]=ACIN presence */
                 POWER_MODE_CHRG=(0x01), /* bits: [0~1]=RESERVED, [2]=lower charging current, [3]=battery activate, [4]=RESERVED, [5]=BATTERY INSTALLED, [6]=CHARGING, [7]=OVER TEMPERATURE */
                 OTG_VBUS=(0x2), /* bits: [0]=SESSION END (1=valid), [1]=VBUS A/B SESSION (1=valid), [2]=VBUS VALID, [7~3]=RESERVED */
-                /* REG 04-0FH: Data Cache @TODO free for use? */
+                
+                /* REG 04-0FH: Data Cache free for use (12byte) see SaveData/GetData */
+                DATA_CACHE0=(0x4),
+                DATA_CACHE1=(0x5),
+                DATA_CACHE2=(0x6),
+                DATA_CACHE3=(0x7),
+                DATA_CACHE4=(0x8),
+                DATA_CACHE5=(0x9),
+                DATA_CACHE6=(0xA),
+                DATA_CACHE7=(0xB),
+                DATA_CACHE8=(0xC),
+                DATA_CACHE9=(0xD),
+                DATA_CACHE10=(0xE),
+                DATA_CACHE11=(0xF),
+                
                 DC_DC3_LDO2_3_4_EXTEN=(0x12), /* bits: [0]=Extern enabled, [1]=DC DC3 control enabled, [2]=LDO2 control enabled, [3]=LDO4 control, [4]=DC-DC2 control, [5]=RESERVED, [6]=LDO3 control, [7]=RESERVED */
                 DC_DC2_V=(0x23), /* bits: [5~0]=Voltage, [7~6]=RESERVED */
-                DC_DC2_LDO3_V_RAMP=(0x25), /* @TODO put this and following registers bit level descripton here */
+
+                /* @TODO a lot more work pending here describing i2c registers */
+                DC_DC2_LDO3_V_RAMP=(0x25),
                 DC_DC3_V=(0x27),
                 LDO2_3_V=(0x28),
                 VBUS_IPSOUT=(0x30),
-                VOFF=(0x31),
-                /* @TODO a lot more work pending here describing i2c registers */
+                VOFF=(0x31), /* bits: [2~0]=(2.6+(Bit2-0)*0.1)V (default: 2.9V) [3]=PEK or GPIO wakeup from sleep, [7~4]=RESERVED */
+
                 // shutdown settings, battery detection and charge led
                 OFF_CONTROL=(0x32), /* bits: [0~1]=DELAY SHUTDOWN (00=128ms, 01=1s, 10=2s, 11=3s),     [2]=output disable timing control (0=disable at same time, 1=contrary to startup timming)
                                         [3]=chrgled (0=controled by charging, 1=controlled by next register at [4~5] offset)          [4~5]=chrgled pin function (00=high resistance, 01=25% 1Hz flicker, 10=25% 4Hz flicker, 11=low level output)
                                         [6]=batt monitor (0=no,1=yes) [7]=do shutdown */
-                PEK_SETTINGS=(0x36), /* bits: [1~0]=shutdown time (00=4s, 01=6s, 10=8s, 11=10s), [2]=POWEROK delay (0=8ms, 1=64ms), [3]=Automatic shutdown, [5~4]=long press time (00=1s, 01=1.5s, 10=2s, 11=2.5s), [7~6]=START DEAY (00=128ms, 01=3s, 10=1s, 11=2s) */
+                PEK_SETTINGS=(0x36), /* bits: [1~0]=shutdown time (00=4s, 01=6s, 10=8s, 11=10s), [2]=POWEROK delay (0=8ms, 1=64ms), [3]=Automatic shutdown, [5~4]=long press time (00=1s, 01=1.5s, 10=2s, 11=2.5s), [7~6]=START DELAY (00=128ms, 01=3s, 10=1s, 11=2s) */
                 // enable IRQ values
                 // default [7~0]=1101 1000
                 IRQ_ENABLE_1=(0x40), /* bits: [X]=RESERVED,                 [1]=VBUS LOW,             [2]=VBUS REMOVED,      [3]=VBUS CONNECTED,      [4]=VBUS OVERVOLTAGE,    [5]=ACIN REMOVED,  [6]=ACIN CONNECTED,      [7]=ACIN OVERVOLTAGE  */
@@ -147,6 +165,11 @@ namespace LunokIoT {
                 FUEL_GAUGE=(0xB9) /* bits: [6~0]=charge percentage, [7]=work mode (0=normal, 1=suspended) */
             };
         public:
+            bool GetData(char (&data)[12]);
+            bool SaveData(char *data[12]);
+            //SaveData/GetData
+
+
             // PEK settings
             uint8_t lastVal = PEK_BUTTON::RELEASED;
             TickType_t lastEvent = 0;

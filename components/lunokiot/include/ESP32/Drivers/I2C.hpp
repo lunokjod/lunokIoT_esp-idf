@@ -32,7 +32,7 @@ namespace LunokIoT {
 #define ACK_CHECK_DIS 0x0           /*!< I2C master will not check ack from slave */
 #define ACK_VAL 0x0                 /*!< I2C ack value */
 #define NACK_VAL 0x1                /*!< I2C nack value */
-#define I2C_MASTER_TIMEOUT_MS       500
+#define I2C_MASTER_TIMEOUT_MS       800
 
     class I2CDriver : public Driver {
         private:

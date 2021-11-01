@@ -537,7 +537,7 @@ I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", 1000) {
     BuildI2CDatabase();
     register_i2ctools();
 
-    // set all channel mutex
+    // set mutex in all channels
     for (size_t offset = 0;offset<ESP32_I2C_PORTS;offset++) {
         channels[offset].useLock =  xSemaphoreCreateMutex();
     }
@@ -545,15 +545,14 @@ I2CDriver::I2CDriver(): Driver((char*)"(-) I2C", 1000) {
 
 bool I2CDriver::Loop() {
     this->CleanupSessions();
-    //printf("%p %s Loop\n", this, this->name);
     return true;
 }
 
 bool I2CDriver::GetSession(uint32_t i2cfrequency, 
                         gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
                         lunokiot_i2c_channel_descriptor_t &descriptor) {
-    bool found = false; // out of for-loop for get the offset outside
-    size_t offset = 0;
+    bool found = false;
+    size_t offset = 0; // out of for-loop for get the offset outside
     for (;offset<ESP32_I2C_PORTS;offset++) {
         //debug_printf("@DEBUG trying channel: %d", offset);
         if ( pdTRUE != xSemaphoreTake(channels[offset].useLock, 10) ) {
@@ -572,7 +571,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
             //debug_printf("@DEBUG Channel: %d is not the same", offset);
             continue; // try next
         }
-        // yeah! found free or reuse it
+        // yeah! one found free or reusable
         //debug_printf("@DEBUG Channel: %d free for use", offset);
         found = true;
         break;
@@ -584,7 +583,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
         return false;  // no free descriptors!!!
     }
 
-    if ( 0 == channels[offset].frequency ) { // emty ones, fill it and initalize
+    if ( 0 == channels[offset].frequency ) { // empty ones, fill it and initalize
         //debug_printf("@DEBUG Channel: %d must be initialized", offset);
         channels[offset].frequency = i2cfrequency;
         channels[offset].scl = i2csclgpio;
@@ -614,7 +613,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
             debug_printferror("i2c_driver_install: %s\n",esp_err_to_name(res));
             initDone = false;
         }
-
+        // unable to start i2c, destroy descriptor
         if ( not initDone ) {
             channels[offset].frequency = 0;
             channels[offset].scl = gpio_num_t(0);
@@ -628,7 +627,7 @@ bool I2CDriver::GetSession(uint32_t i2cfrequency,
     channels[offset].lastUsed = xTaskGetTickCount(); // update last use
     descriptor = channels[offset];
     //debug_printf("Obtained i2c channel %d", offset);
-    return true; // at this point the mutex is locked
+    return true; // at this point the mutex mark in use, must call FreeSession
 
 }
 void I2CDriver::CleanupSessions() {
@@ -689,83 +688,8 @@ bool I2CDriver::GetChar(lunokiot_i2c_channel_descriptor_t &descriptor, uint8_t a
     esp_err_t res = i2c_master_write_read_device(descriptor.port, address, &i2cregister, 1, &value, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
     if ( ESP_OK != res ) {
         debug_printferror("i2c_master_write_read_device: %s", esp_err_to_name(res));
+        do_i2cchannels_cmd(0, nullptr);
         return false;
     }
     return true;
 }
-/*
-// SemaphoreHandle_t _mutexLock = xSemaphoreCreateMutex();
-bool I2CDriver::GetI2CSession(i2c_port_t i2cport, uint32_t i2cfrequency, 
-                        gpio_num_t i2csdagpio, gpio_num_t i2csclgpio,
-                        uint8_t i2caddress) {
-    if ( pdTRUE != xSemaphoreTake(_mutexLock, portMAX_DELAY) ) {
-        printf("%s:%d %s() Mutex ERROR: acquire timeout\n",__FILE__, __LINE__, __func__);
-        return false;
-    }
-    // i2c Step 1, configure:
-    i2c_config_t i2cConf = { // --sda 21 --scl 22 --freq 400000
-        .mode = I2C_MODE_MASTER,
-        .sda_io_num = (int)i2csdagpio,
-        .scl_io_num = (int)i2csclgpio,
-        .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE,
-        .master {
-            .clk_speed = I2C_MASTER_FREQ_HZ
-        },
-        .clk_flags = 0
-    };
-    esp_err_t res = i2c_param_config(i2cport, &i2cConf);
-    if ( ESP_OK != res ) {
-        printf("%s:%d %s() i2c_param_config ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        return false;
-    }
-
-    // Step 2, install driver:
-    res = i2c_driver_install(i2cport, i2cConf.mode , I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-    if ( ESP_OK != res ) {
-        printf("%s:%d %s() i2c_driver_install ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        return false;
-    }
-
-    // Step 3, get the data
-    return true;
-}
-bool I2CDriver::FreeI2CSession(i2c_port_t i2cport) {
-    esp_err_t res = i2c_driver_delete(i2cport);
-    if ( ESP_OK != res ) {
-        printf("%s:%d %s() i2c_driver_delete ERROR: %s\n",__FILE__, __LINE__, __func__, esp_err_to_name(res));
-        return false;
-    }
-
-    xSemaphoreGive(_mutexLock);
-    return true;
-}
-
-
-
-bool I2CDriver::GetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, uint8_t &value) {
-    esp_err_t res = i2c_master_write_read_device(i2cport, address, &i2cregister, 1, &value, 1, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
-    if ( ESP_OK != res ) {
-        debug_printferror("i2c_master_write_read_device ERROR: %s", esp_err_to_name(res));
-        return false;
-    }
-    return true;
-}
-
-
-
-bool I2CDriver::SetI2CChar(i2c_port_t i2cport, uint8_t address, const uint8_t i2cregister, const uint8_t value) {
-    const uint8_t write_buf[2] = { i2cregister, value };
-    esp_err_t res = i2c_master_write_to_device(i2cport, address, write_buf, 2, I2C_MASTER_TIMEOUT_MS / portTICK_RATE_MS);
-    if ( ESP_OK != res ) {
-        debug_printferror("i2c_master_write_to_device ERROR: %s", esp_err_to_name(res));
-        return false;
-    }
-    if ( value != write_buf[1]) {
-        debug_printferror("ERROR: check readed value '0x%x' isn't the setted: '0x%x'", write_buf[1], value);
-        return false;
-    }
-    return true;
-}
-
-*/

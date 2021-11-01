@@ -404,6 +404,16 @@ void AXP202Driver::DescribeStatus(uint8_t status[5]=IRQ_STATUS_CACHE_CURRENT) { 
     printf("%stimer timeout%s\n",IRQ_ENABLE_5_BIT7_TIMER_TIMEOUT?TERM_FG_GREEN:TERM_RESET, TERM_RESET);
 
 }
+
+
+bool AXP202Driver::GetData(char (&data)[12]) {
+    return false;
+}
+
+bool AXP202Driver::SaveData(char *data[12]) {
+    return false;
+}
+
 bool AXP202Driver::ReadStatus() {
     // talk with AXP202
     lunokiot_i2c_channel_descriptor_t myDescriptor = {};
@@ -590,7 +600,6 @@ bool AXP202Driver::StatusChangeActions() {
         anyChange = true;
     }
     
-
     return anyChange;
 }
 /*
@@ -630,8 +639,12 @@ bool AXP202Driver::PoolRegisters() {
 
     // [2]=output disable timing control (0=disable at same time, 1=contrary to startup timming)
 
+/*
     bool chargeLed = offControlData >> 3;
     debug_printf("Charger led: %s", chargeLed?"in use by charger":"free to use");
+*/
+
+
 // shutdown settings, battery detection and charge led
 // bits: 
 // [3]=chrgled (0=controled by charging, 1=controlled by next register at [4~5] offset)
@@ -644,70 +657,26 @@ bool AXP202Driver::PoolRegisters() {
     return true;
 }
 
-// I hate pooling
+
+// AXP202 management via timer (see ->period value)
 bool AXP202Driver::Loop() {
     
-    // no interrupt triggered?, get out!
+    // have pending to read interrupts?
     if ( true == axp202Interrupt ) { 
         debug_printf("AXP202 Interrupt received");
-        this->ReadStatus();
-        this->StatusChangeActions();
+        this->ReadStatus(); // get status data
+        this->StatusChangeActions(); // take decisions with the changes
+        this->Clearbits(); // ack received data from AXP
         axp202Interrupt = false; // ack interrupt 
-        this->Clearbits(); // ack received data from AXP 
-        return true;
     }
-    
-    // TickType_t thisEvent = xTaskGetTickCount();
-    static uint8_t shitCounter = 0;
-    shitCounter++;
-    if ( 0 == (shitCounter % 100) ) {
-        debug_printf("Obtaining AXP202 registers...");
+
+    // is time to refresh all registers?
+    static TickType_t nextPool = 0; // force first refresh
+    if ( nextPool <  xTaskGetTickCount() ) {
+        //debug_printf("Obtaining AXP202 registers...");
         this->PoolRegisters();
+        nextPool = xTaskGetTickCount() + APX202POOL_TIME_MS;
     }
-/*
-    // logic button goes here:
-    TickType_t thisEvent = xTaskGetTickCount();
-    if ( buttonStatus != lastVal ) { // only if state of button changes
-        printf("%p (-) Button(-1) ", this);
-        if ( buttonStatus == PEK_BUTTON::RELEASED) {
-            printf("Released");
-            // relased now
-            TickType_t diffTime = thisEvent-lastEvent;
-            printf(" %dms", diffTime);
-        } else {
-            printf("Pressed");
-        }        
-        
-        if ( PEK_BUTTON::LONG == lastVal ) {
-            printf(" long press event");
-            this->period = PEK_BUTTON_POOL_TIME; // released, low pooling
-        } else if ( PEK_BUTTON::SHORT == lastVal ) {
-            printf(" click event");
-            this->period = PEK_BUTTON_POOL_TIME; // released, low pooling
-        } else {
-            this->period = PEK_BUTTON_SENSING_TIME; // button pressed, high resolution poll to get accurated time
-        }
-        printf("\n");
-        lastEvent = thisEvent;
-    }
-    lastVal = buttonStatus;
 
-    // the most important, ¿is the user pushing the POWER BUTTON? send a warning!
-
-    if ( PEK_BUTTON::LONG == buttonStatus ) { // do you like spagetti?
-        if ( warnUserForPowerOff == true ) { // must warn user what are doing? (poweroff in 6 seconds!)
-            printf("\n\n /!\\ /!\\ /!\\ WARNING!!! RELEASE the BUTTON before 6 seconds to AVOID POWERDOWN /!\\ /!\\ /!\\ \n\n\n");
-            this->period = PEK_BUTTON_SENSING_TIME; // button pressed, high resolution poll to get accurated time
-            fflush(stdout);
-            return true;
-        }
-    } else if ( PEK_BUTTON::RELEASED == buttonStatus ) {
-        if ( false == warnUserForPowerOff ) {
-            printf("\nPOWEROFF procedure stopped due power button release :-)\n\n");
-            warnUserForPowerOff = true;
-        }
-    }
-    
-    */
    return true;
 }
